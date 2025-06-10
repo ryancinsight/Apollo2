@@ -1,0 +1,11 @@
+[package]
+name = "lumidox-ii-controller"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }
+serialport = "4.2"
+anyhow = "1.0"
+semver = "1.0"
+thiserror = "1.0"
