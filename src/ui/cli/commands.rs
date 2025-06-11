@@ -4,6 +4,7 @@
 //! providing direct command-line access to device operations.
 
 use crate::core::Result;
+use crate::communication::{PortDetector, PortDetectionConfig, BaudDetector, BaudDetectionConfig, AutoConnector};
 use super::{args::Commands, device::create_device_controller_with_optimization};
 
 /// Run a specific command in non-interactive mode
@@ -133,6 +134,72 @@ pub fn run_command_mode_with_optimization(command: Commands, port_name: String, 
             }
         }
         Commands::ListPorts => unreachable!(),
+        Commands::DetectPorts => {
+            println!("Detecting compatible Lumidox II Controller ports...");
+            let config = PortDetectionConfig::default();
+            match PortDetector::detect_ports(&config) {
+                Ok(candidates) => {
+                    if candidates.is_empty() {
+                        println!("No compatible ports found.");
+                    } else {
+                        println!("Found {} compatible port(s):", candidates.len());
+                        for (index, candidate) in candidates.iter().enumerate() {
+                            println!("{}. {} - {} (Score: {})",
+                                index + 1,
+                                candidate.port_info.port_name,
+                                candidate.score_reason,
+                                candidate.compatibility_score);
+
+                            if let Some(details) = &candidate.device_details {
+                                if let Some(fw) = &details.firmware_version {
+                                    println!("   Firmware: {}", fw);
+                                }
+                                if let Some(model) = &details.model_number {
+                                    println!("   Model: {}", model);
+                                }
+                            }
+                        }
+                    }
+                }
+                Err(e) => println!("Error detecting ports: {}", e),
+            }
+        }
+        Commands::TestBaud { port } => {
+            println!("Testing baud rates on port {}...", port);
+            let config = BaudDetectionConfig::default();
+            match BaudDetector::test_all_baud_rates(&port, &config) {
+                Ok(results) => {
+                    println!("Baud rate test results:");
+                    for result in results {
+                        let status = if result.success { "✓" } else { "✗" };
+                        println!("{} {} baud - Score: {} ({}/{})",
+                            status,
+                            result.baud_rate,
+                            result.quality_score,
+                            result.successful_responses,
+                            result.total_attempts);
+
+                        if let Some(info) = &result.device_info {
+                            if let Some(fw) = &info.firmware_version {
+                                println!("    Firmware: {}", fw);
+                            }
+                        }
+                    }
+                }
+                Err(e) => println!("Error testing baud rates: {}", e),
+            }
+        }
+        Commands::PortDiagnostics => {
+            println!("Running port diagnostics...");
+            match AutoConnector::get_port_diagnostics() {
+                Ok(diagnostics) => {
+                    for line in diagnostics {
+                        println!("{}", line);
+                    }
+                }
+                Err(e) => println!("Error running diagnostics: {}", e),
+            }
+        }
     }
 
     Ok(())

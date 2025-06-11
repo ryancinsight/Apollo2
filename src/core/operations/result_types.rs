@@ -1,0 +1,135 @@
+//! Result types for unified operations
+//!
+//! This module defines interface-independent result types that can be used by both
+//! CLI and GUI interfaces. These types contain structured data that each interface
+//! can format and present according to its own requirements.
+
+use crate::core::LumidoxError;
+
+/// Unified operation result type
+pub type OperationResult<T> = std::result::Result<OperationResponse<T>, LumidoxError>;
+
+/// Interface-independent operation response
+#[derive(Debug, Clone)]
+pub struct OperationResponse<T> {
+    /// The operation data payload
+    pub data: T,
+    /// Human-readable success message
+    pub message: String,
+    /// Operation metadata
+    pub metadata: OperationMetadata,
+}
+
+/// Operation metadata for tracking and logging
+#[derive(Debug, Clone)]
+pub struct OperationMetadata {
+    /// Operation type identifier
+    pub operation_type: String,
+    /// Timestamp of operation completion
+    pub timestamp: std::time::SystemTime,
+    /// Operation duration in milliseconds
+    pub duration_ms: Option<u64>,
+    /// Additional context information
+    pub context: std::collections::HashMap<String, String>,
+}
+
+/// Device operation data types
+#[derive(Debug, Clone)]
+pub enum DeviceOperationData {
+    /// Device control operation result
+    DeviceControl {
+        /// Previous device state
+        previous_state: Option<String>,
+        /// New device state
+        new_state: Option<String>,
+        /// Operation success flag
+        success: bool,
+    },
+    /// Stage firing operation result
+    StageFiring {
+        /// Stage number that was fired
+        stage: u8,
+        /// Current used for firing (if applicable)
+        current_ma: Option<u16>,
+        /// Success flag
+        success: bool,
+    },
+    /// Custom current firing result
+    CurrentFiring {
+        /// Current value used
+        current_ma: u16,
+        /// Success flag
+        success: bool,
+    },
+    /// Device status information
+    StatusInfo {
+        /// Device information string
+        device_info: String,
+        /// Connection status
+        connected: bool,
+        /// Current device mode
+        mode: Option<String>,
+    },
+    /// Connection operation result
+    Connection {
+        /// Connection success flag
+        connected: bool,
+        /// Port name used
+        port_name: Option<String>,
+        /// Device information if connected
+        device_info: Option<String>,
+    },
+}
+
+impl<T> OperationResponse<T> {
+    /// Create a new successful operation response
+    pub fn success(data: T, message: String, operation_type: String) -> Self {
+        Self {
+            data,
+            message,
+            metadata: OperationMetadata {
+                operation_type,
+                timestamp: std::time::SystemTime::now(),
+                duration_ms: None,
+                context: std::collections::HashMap::new(),
+            },
+        }
+    }
+
+    /// Create a new operation response with duration
+    pub fn success_with_duration(
+        data: T,
+        message: String,
+        operation_type: String,
+        duration_ms: u64,
+    ) -> Self {
+        Self {
+            data,
+            message,
+            metadata: OperationMetadata {
+                operation_type,
+                timestamp: std::time::SystemTime::now(),
+                duration_ms: Some(duration_ms),
+                context: std::collections::HashMap::new(),
+            },
+        }
+    }
+
+    /// Add context information to the operation response
+    pub fn with_context(mut self, key: String, value: String) -> Self {
+        self.metadata.context.insert(key, value);
+        self
+    }
+}
+
+impl OperationMetadata {
+    /// Create new operation metadata
+    pub fn new(operation_type: String) -> Self {
+        Self {
+            operation_type,
+            timestamp: std::time::SystemTime::now(),
+            duration_ms: None,
+            context: std::collections::HashMap::new(),
+        }
+    }
+}
