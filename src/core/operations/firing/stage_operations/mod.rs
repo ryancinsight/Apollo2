@@ -15,6 +15,9 @@ use crate::core::operations::result_types::{OperationResult, OperationResponse, 
 use crate::device::LumidoxDevice;
 use std::time::Instant;
 
+#[cfg(test)]
+mod tests;
+
 /// Stage operations for unified firing functionality
 pub struct StageOperations;
 
