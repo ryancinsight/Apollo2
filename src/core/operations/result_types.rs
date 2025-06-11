@@ -70,6 +70,47 @@ pub enum DeviceOperationData {
         /// Current device mode
         mode: Option<String>,
     },
+    /// Device status information (unified)
+    DeviceStatus {
+        /// Current device mode
+        current_mode: Option<String>,
+        /// ARM current setting in mA
+        arm_current: Option<u16>,
+        /// FIRE current setting in mA
+        fire_current: Option<u16>,
+        /// Remote mode state
+        remote_mode_state: Option<u16>,
+        /// Connection health status
+        connection_healthy: bool,
+        /// Device readiness for operations
+        ready_for_operations: bool,
+    },
+    /// Parameter information
+    ParameterInfo {
+        /// Parameter name
+        parameter_name: String,
+        /// Parameter value
+        value: Option<String>,
+        /// Parameter units (if applicable)
+        units: Option<String>,
+        /// Whether parameter is within valid range
+        valid_range: bool,
+        /// Additional parameter metadata
+        metadata: Option<String>,
+    },
+    /// Stage information
+    StageInfo {
+        /// Stage number (1-5)
+        stage_number: u8,
+        /// Stage current in mA
+        current_ma: Option<u16>,
+        /// Stage voltage (if available)
+        voltage_v: Option<f32>,
+        /// Power information
+        power_info: Option<String>,
+        /// Stage readiness for firing
+        ready_for_firing: bool,
+    },
     /// Connection operation result
     Connection {
         /// Connection success flag
