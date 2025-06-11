@@ -7,7 +7,7 @@ mod device;
 mod ui;
 
 use core::{LumidoxError, Result};
-use ui::{Cli, Commands, run_interactive_mode, run_command_mode, list_serial_ports};
+use ui::{Cli, Commands, run_interactive_mode_with_optimization, run_command_mode_with_optimization, list_serial_ports};
 
 
 
@@ -15,6 +15,9 @@ use ui::{Cli, Commands, run_interactive_mode, run_command_mode, list_serial_port
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+
+    // Determine optimization setting (enabled by default, disabled with --no-optimize)
+    let optimize_transitions = !cli.no_optimize;
 
     match cli.command {
         Some(Commands::ListPorts) => {
@@ -26,11 +29,11 @@ fn main() -> Result<()> {
                 LumidoxError::InvalidInput("Port must be specified for non-interactive mode".to_string())
             })?;
 
-            run_command_mode(command, port_name)?;
+            run_command_mode_with_optimization(command, port_name, optimize_transitions)?;
         }
         None => {
             // Interactive mode
-            run_interactive_mode(cli.port)?;
+            run_interactive_mode_with_optimization(cli.port, optimize_transitions)?;
         }
     }
 

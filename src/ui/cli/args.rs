@@ -50,6 +50,38 @@ pub enum Commands {
     Off,
     /// Show device information
     Info,
+    /// Display current device status (state, currents, operational status)
+    Status,
+    /// Read and display current remote mode state
+    ReadState,
+    /// Read current ARM current setting
+    ReadArmCurrent,
+    /// Read current FIRE current setting
+    ReadFireCurrent,
+    /// Set ARM current value
+    SetArmCurrent {
+        /// ARM current value in mA
+        #[arg(value_name = "MILLIAMPS")]
+        value: u16
+    },
+    /// Display complete stage parameters (ARM current, FIRE current, voltages, power)
+    StageInfo {
+        /// Stage number (1-5)
+        #[arg(value_name = "STAGE")]
+        stage: u8
+    },
+    /// Read ARM current for specific stage
+    StageArm {
+        /// Stage number (1-5)
+        #[arg(value_name = "STAGE")]
+        stage: u8
+    },
+    /// Read voltage parameters for specific stage
+    StageVoltages {
+        /// Stage number (1-5)
+        #[arg(value_name = "STAGE")]
+        stage: u8
+    },
     /// List available COM ports
     ListPorts,
 }

@@ -1,7 +1,7 @@
-//! Device power operations for Lumidox II Controller
+//! Power measurement operations for Lumidox II Controller
 //!
 //! This module provides functions for reading power information
-//! and managing power-related device operations.
+//! from device stages and decoding unit information.
 
 use crate::core::{LumidoxError, Result};
 use crate::communication::ProtocolHandler;
@@ -44,7 +44,7 @@ pub fn get_power_info(protocol: &mut ProtocolHandler, stage_num: u8) -> Result<P
 }
 
 /// Decode total units index to human-readable string
-fn decode_total_units(index: i32) -> String {
+pub fn decode_total_units(index: i32) -> String {
     match index {
         0 => "W TOTAL RADIANT POWER".to_string(),
         1 => "mW TOTAL RADIANT POWER".to_string(),
@@ -58,7 +58,7 @@ fn decode_total_units(index: i32) -> String {
 }
 
 /// Decode per-unit index to human-readable string
-fn decode_per_units(index: i32) -> String {
+pub fn decode_per_units(index: i32) -> String {
     match index {
         0 => "W PER WELL".to_string(),
         1 => "mW PER WELL".to_string(),

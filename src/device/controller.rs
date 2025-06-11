@@ -6,7 +6,7 @@
 use crate::core::Result;
 use crate::communication::ProtocolHandler;
 use crate::device::models::{DeviceMode, DeviceInfo};
-use crate::device::operations::{control, power};
+use crate::device::operations::{self, control, power};
 use crate::device::info;
 use std::thread;
 use std::time::Duration;
@@ -134,5 +134,55 @@ impl LumidoxDevice {
     /// Get power information for a specific stage
     pub fn get_power_info(&mut self, stage_num: u8) -> Result<crate::device::models::PowerInfo> {
         power::get_power_info(&mut self.protocol, stage_num)
+    }
+
+    /// Read current device state description
+    pub fn read_device_state(&mut self) -> Result<String> {
+        operations::readback::get_device_state_description(&mut self.protocol)
+    }
+
+    /// Read current settings summary
+    pub fn read_current_settings(&mut self) -> Result<String> {
+        operations::readback::get_current_settings_summary(&mut self.protocol)
+    }
+
+    /// Read remote mode state
+    pub fn read_remote_mode(&mut self) -> Result<DeviceMode> {
+        operations::readback::read_remote_mode_state(&mut self.protocol)
+    }
+
+    /// Read ARM current setting
+    pub fn read_arm_current(&mut self) -> Result<u16> {
+        operations::readback::read_arm_current(&mut self.protocol)
+    }
+
+    /// Read FIRE current setting
+    pub fn read_fire_current(&mut self) -> Result<u16> {
+        operations::readback::read_fire_current(&mut self.protocol)
+    }
+
+    /// Set ARM current value
+    pub fn set_arm_current(&mut self, current_ma: u16) -> Result<()> {
+        operations::readback::set_arm_current(&mut self.protocol, current_ma)
+    }
+
+    /// Get complete stage parameters
+    pub fn get_stage_parameters(&mut self, stage_num: u8) -> Result<operations::power::StageParameters> {
+        operations::power::get_stage_parameters(&mut self.protocol, stage_num)
+    }
+
+    /// Get ARM current for specific stage
+    pub fn get_stage_arm_current(&mut self, stage_num: u8) -> Result<u16> {
+        operations::power::get_stage_arm_current(&mut self.protocol, stage_num)
+    }
+
+    /// Get voltage limit for specific stage
+    pub fn get_stage_volt_limit(&mut self, stage_num: u8) -> Result<f32> {
+        operations::power::get_stage_volt_limit(&mut self.protocol, stage_num)
+    }
+
+    /// Get voltage start for specific stage
+    pub fn get_stage_volt_start(&mut self, stage_num: u8) -> Result<f32> {
+        operations::power::get_stage_volt_start(&mut self.protocol, stage_num)
     }
 }

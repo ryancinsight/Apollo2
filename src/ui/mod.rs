@@ -6,4 +6,6 @@
 pub mod cli;
 
 // Re-export commonly used items for convenience
-pub use cli::{Cli, Commands, run_interactive_mode, run_command_mode, list_serial_ports};
+pub use cli::{Cli, Commands, run_interactive_mode, run_command_mode,
+              run_interactive_mode_with_optimization, run_command_mode_with_optimization,
+              list_serial_ports};
