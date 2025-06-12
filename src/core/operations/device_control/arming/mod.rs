@@ -15,6 +15,9 @@ use crate::core::operations::result_types::{OperationResult, OperationResponse, 
 use crate::device::LumidoxDevice;
 use std::time::Instant;
 
+mod device_traits;
+pub use device_traits::{DeviceStateProvider, ArmingCapable};
+
 #[cfg(test)]
 mod tests;
 
@@ -106,7 +109,7 @@ impl ArmingOperations {
     /// ```
     /// ArmingOperations::validate_arming_readiness(&device)?; // OK if ready
     /// ```
-    pub fn validate_arming_readiness(device: &LumidoxDevice) -> crate::core::Result<()> {
+    pub fn validate_arming_readiness<T: DeviceStateProvider>(device: &T) -> crate::core::Result<()> {
         // Check if device is in a state that allows arming
         match device.current_mode() {
             Some(mode) => {
@@ -146,11 +149,11 @@ impl ArmingOperations {
     /// for consistent logging and display across interfaces.
     ///
     /// # Arguments
-    /// * `device` - Reference to the device
+    /// * `device` - Reference to any device that implements DeviceStateProvider
     ///
     /// # Returns
     /// * `Option<String>` - Device state string if available
-    fn get_device_state_string(device: &LumidoxDevice) -> Option<String> {
+    fn get_device_state_string<T: DeviceStateProvider>(device: &T) -> Option<String> {
         device.current_mode().map(|mode| format!("{:?}", mode))
     }
 }
