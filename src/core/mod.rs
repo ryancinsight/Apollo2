@@ -12,5 +12,5 @@ pub mod types;
 
 // Re-export commonly used items for convenience
 pub use error::LumidoxError;
-pub use operations::{DeviceControlOperations, OperationResult, OperationResponse, DeviceOperationData};
+pub use operations::{DeviceControlOperations, DeviceOperationData};
 pub use types::Result;

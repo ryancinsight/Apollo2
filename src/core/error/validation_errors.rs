@@ -2,13 +2,73 @@
 //!
 //! This module provides specialized error handling utilities and documentation
 //! for input validation and parameter constraint errors in the Lumidox II Controller.
-//! 
-//! Validation errors typically occur during:
-//! - User input parameter validation
-//! - Configuration value range checking
-//! - Stage number and current value validation
-//! - Command line argument parsing
-//! - Interactive menu input processing
+//!
+//! ## Module Structure (8+ levels deep)
+//! ```
+//! src/core/error/validation_errors/         (Level 4)
+//! ├── range/                                (Level 5)
+//! │   ├── numeric/                          (Level 6)
+//! │   │   ├── bounds/                       (Level 7)
+//! │   │   │   └── mod.rs                    (Level 8) - Numeric bounds validation
+//! │   │   └── limits/                       (Level 7)
+//! │   │       └── mod.rs                    (Level 8) - Numeric limits validation
+//! │   ├── stage/                            (Level 6)
+//! │   │   └── validation/                   (Level 7)
+//! │   │       └── mod.rs                    (Level 8) - Stage range validation
+//! │   └── current/                          (Level 6)
+//! │       └── validation/                   (Level 7)
+//! │           └── mod.rs                    (Level 8) - Current range validation
+//! ├── missing/                              (Level 5)
+//! │   ├── required/                         (Level 6)
+//! │   │   ├── parameters/                   (Level 7)
+//! │   │   │   └── mod.rs                    (Level 8) - Required parameter validation
+//! │   │   └── fields/                       (Level 7)
+//! │   │       └── mod.rs                    (Level 8) - Required field validation
+//! │   └── optional/                         (Level 6)
+//! │       └── validation/                   (Level 7)
+//! │           └── mod.rs                    (Level 8) - Optional parameter validation
+//! ├── format/                               (Level 5)
+//! │   ├── type_validation/                  (Level 6)
+//! │   │   ├── numeric/                      (Level 7)
+//! │   │   │   └── mod.rs                    (Level 8) - Numeric type validation
+//! │   │   └── string/                       (Level 7)
+//! │   │       └── mod.rs                    (Level 8) - String format validation
+//! │   └── structure/                        (Level 6)
+//! │       └── validation/                   (Level 7)
+//! │           └── mod.rs                    (Level 8) - Structure format validation
+//! ├── combination/                          (Level 5)
+//! │   ├── conflicts/                        (Level 6)
+//! │   │   └── detection/                    (Level 7)
+//! │   │       └── mod.rs                    (Level 8) - Parameter conflict detection
+//! │   └── dependencies/                     (Level 6)
+//! │       └── validation/                   (Level 7)
+//! │           └── mod.rs                    (Level 8) - Parameter dependency validation
+//! └── constraint/                           (Level 5)
+//!     ├── business_logic/                   (Level 6)
+//!     │   └── validation/                   (Level 7)
+//!     │       └── mod.rs                    (Level 8) - Business logic constraints
+//!     └── safety/                           (Level 6)
+//!         └── validation/                   (Level 7)
+//!             └── mod.rs                    (Level 8) - Safety constraint validation
+//! ```
+//!
+//! Each sub-module follows the prescribed schema with single responsibility
+//! and maintains <150 lines per file.
+
+// Import specialized sub-modules
+pub mod range;
+pub mod missing;
+pub mod format;
+pub mod combination;
+pub mod constraint;
+
+// Re-export commonly used items for convenience
+// Note: Utilities are available but not currently used in the codebase
+// pub use range::{RangeErrorUtils, RangeErrorCategory};
+// pub use missing::{MissingErrorUtils, MissingErrorCategory};
+// pub use format::{FormatErrorUtils, FormatErrorCategory};
+// pub use combination::{CombinationErrorUtils, CombinationErrorCategory};
+// pub use constraint::{ConstraintErrorUtils, ConstraintErrorCategory};
 
 use super::types::LumidoxError;
 

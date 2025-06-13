@@ -6,7 +6,3 @@
 pub mod mode_control;
 
 // Re-export commonly used items for convenience
-pub use mode_control::{
-    DeviceStateManager, IntendedOperation, StateValidationResult, 
-    ModeTransitionResult, StateTransitionInfo
-};

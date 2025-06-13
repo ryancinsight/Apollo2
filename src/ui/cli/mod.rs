@@ -20,5 +20,5 @@ pub mod device;
 // Re-export commonly used items for convenience
 pub use args::{Cli, Commands};
 pub use ports::list_serial_ports;
-pub use interactive::{run_interactive_mode, run_interactive_mode_with_optimization};
-pub use commands::{run_command_mode, run_command_mode_with_optimization};
+pub use interactive::run_interactive_mode_with_optimization;
+pub use commands::run_command_mode_with_optimization;

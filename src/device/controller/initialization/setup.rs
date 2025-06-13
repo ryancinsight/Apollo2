@@ -12,7 +12,7 @@
 
 use crate::core::Result;
 use crate::communication::ProtocolHandler;
-use crate::device::models::{DeviceMode, DeviceInfo};
+use crate::device::models::DeviceMode;
 use crate::device::{info, operations::control};
 use std::thread;
 use std::time::Duration;

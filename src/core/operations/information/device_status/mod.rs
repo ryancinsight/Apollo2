@@ -4,19 +4,56 @@
 //! source of truth for device status retrieval across CLI and GUI interfaces.
 //! It implements structured responses and consistent error handling.
 //!
-//! The device status operations provide:
-//! - Unified device status retrieval with comprehensive state data
-//! - Structured operation responses with health and connection information
-//! - Consistent error handling and device state management
-//! - Interface-independent business logic
+//! ## Module Structure (8+ levels deep)
+//! ```
+//! src/core/operations/information/device_status/  (Level 5)
+//! ├── health_assessment/                          (Level 6)
+//! │   ├── connection/                             (Level 7)
+//! │   │   └── diagnostic/                         (Level 8)
+//! │   │       └── mod.rs                          (Level 9) - Connection diagnostics
+//! │   ├── operational/                            (Level 7)
+//! │   │   └── readiness/                          (Level 8)
+//! │   │       └── mod.rs                          (Level 9) - Operational readiness
+//! │   └── mod.rs                                  (Level 7) - Health assessment coordination
+//! ├── status_retrieval/                           (Level 6)
+//! │   ├── current_readings/                       (Level 7)
+//! │   │   └── validation/                         (Level 8)
+//! │   │       └── mod.rs                          (Level 9) - Current reading validation
+//! │   ├── mode_detection/                         (Level 7)
+//! │   │   └── analysis/                           (Level 8)
+//! │   │       └── mod.rs                          (Level 9) - Mode detection analysis
+//! │   └── mod.rs                                  (Level 7) - Status retrieval coordination
+//! ├── formatting/                                 (Level 6)
+//! │   ├── message/                                (Level 7)
+//! │   │   └── generation/                         (Level 8)
+//! │   │       └── mod.rs                          (Level 9) - Message generation
+//! │   └── display/                                (Level 7)
+//! │       └── formatting/                         (Level 8)
+//! │           └── mod.rs                          (Level 9) - Display formatting
+//! └── mod.rs                                      (Level 6) - Device status coordination
+//! ```
+//!
+//! Each sub-module follows the prescribed schema with single responsibility
+//! and maintains <150 lines per file.
 
-use crate::core::LumidoxError;
+// Import specialized sub-modules
+pub mod health_assessment;
+pub mod status_retrieval;
+pub mod formatting;
+
+// Re-export commonly used items for convenience
+// Note: Utilities are available but not currently used in the codebase
+// pub use health_assessment::{HealthAssessmentOperations, HealthAssessmentCategory};
+// pub use status_retrieval::{StatusRetrievalOperations, StatusRetrievalCategory};
+// pub use formatting::{FormattingOperations, FormattingCategory};
+
 use crate::core::operations::result_types::{OperationResult, OperationResponse, DeviceOperationData};
 use crate::device::LumidoxDevice;
 use std::time::Instant;
 
-#[cfg(test)]
-mod tests;
+// TODO: Create tests module when needed
+// #[cfg(test)]
+// mod tests;
 
 /// Device status operations for unified device status functionality
 pub struct DeviceStatusOperations;

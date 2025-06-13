@@ -19,7 +19,7 @@
 // Re-export the main application for easy access
 // pub use application::LumidoxApplication;
 
-use iced::{Settings, Size, window, Element, Task, Theme};
+use iced::{Element, Task, Theme};
 use crate::core::{LumidoxError, DeviceControlOperations, DeviceOperationData};
 use crate::ui::cli::device::create_device_controller_with_fallback;
 use crate::device::LumidoxDevice;
@@ -715,7 +715,7 @@ fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 let device_arc = state.device.clone();
                 Task::perform(
                     async move {
-                        let mut device_guard = device_arc.lock().await;
+                        let device_guard = device_arc.lock().await;
                         if let Some(ref device) = *device_guard {
                             let device_info = if let Some(info) = device.info() {
                                 format!(

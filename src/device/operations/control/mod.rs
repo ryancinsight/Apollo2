@@ -15,4 +15,3 @@ pub mod validation;
 pub use firing::{fire_stage, fire_stage_smart, fire_with_current, fire_with_current_smart, get_max_current};
 pub use arming::arm_device;
 pub use modes::{set_mode, turn_off, shutdown};
-pub use validation::{validate_stage_number, validate_current, validate_non_zero_current};

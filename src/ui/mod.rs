@@ -56,7 +56,7 @@ pub mod gui {
 pub use gui::run_gui;
 
 // Re-export commonly used items for convenience
-pub use cli::{Cli, Commands, run_interactive_mode, run_command_mode,
+pub use cli::{Cli, Commands,
               run_interactive_mode_with_optimization, run_command_mode_with_optimization,
               list_serial_ports};
 

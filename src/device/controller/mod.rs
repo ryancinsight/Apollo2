@@ -24,24 +24,10 @@ use crate::device::operations as device_operations;
 // Sub-module declarations
 pub mod initialization;
 pub mod state_management;
-pub mod operations;
 
 // Re-export key types and utilities for convenience
-pub use initialization::setup::{
-    DeviceInitializer, InitializationStatus, IntendedUsage, InitializationRecommendations
-};
-pub use state_management::mode_control::{
-    DeviceStateManager, IntendedOperation, StateValidationResult, 
-    ModeTransitionResult, StateTransitionInfo
-};
-pub use operations::control::{
-    DeviceControlOperations, ControlOperation, FiringReadinessResult,
-    ControlRecommendations, ControlOperationResult
-};
-pub use operations::information::{
-    DeviceInformationOperations, DeviceStatusReport, StageInformation,
-    InformationConsistencyReport
-};
+pub use initialization::setup::DeviceInitializer;
+pub use state_management::mode_control::DeviceStateManager;
 
 /// High-level device controller with modular architecture
 /// 
@@ -179,14 +165,14 @@ impl LumidoxDevice {
     }
 
     /// Get device information (cached after initialization)
-    /// 
+    ///
     /// Returns the cached device information that was retrieved during
     /// initialization, including firmware version, model number, and other
     /// device characteristics.
-    /// 
+    ///
     /// # Returns
     /// * `Option<&DeviceInfo>` - Reference to cached device info, if available
-    /// 
+    ///
     /// # Example
     /// ```
     /// if let Some(info) = device.info() {
@@ -194,7 +180,7 @@ impl LumidoxDevice {
     /// }
     /// ```
     pub fn info(&self) -> Option<&DeviceInfo> {
-        DeviceInformationOperations::get_device_info(self)
+        self.info.as_ref()
     }
 
     /// Set device operating mode
@@ -234,150 +220,168 @@ impl LumidoxDevice {
     }
 
     /// Arm the device (prepare for firing)
-    /// 
+    ///
     /// Prepares the device for firing operations by setting it to armed mode.
-    /// 
+    ///
     /// # Returns
     /// * `Result<()>` - Success or arming error
-    /// 
+    ///
     /// # Example
     /// ```
     /// device.arm()?;
     /// ```
     pub fn arm(&mut self) -> Result<()> {
-        DeviceControlOperations::arm_device(self)
+        device_operations::control::arm_device(&mut self.protocol)?;
+        self.current_mode = Some(DeviceMode::Remote);
+        Ok(())
     }
     
     /// Fire a specific stage
-    /// 
+    ///
     /// Fires the specified stage using optimization settings for improved
     /// performance when appropriate.
-    /// 
+    ///
     /// # Arguments
     /// * `stage_num` - The stage number to fire (1-5)
-    /// 
+    ///
     /// # Returns
     /// * `Result<()>` - Success or firing error
-    /// 
+    ///
     /// # Example
     /// ```
     /// device.fire_stage(3)?;
     /// ```
     pub fn fire_stage(&mut self, stage_num: u8) -> Result<()> {
-        DeviceControlOperations::fire_stage(self, stage_num)
+        if self.optimize_transitions {
+            device_operations::control::fire_stage_smart(&mut self.protocol, stage_num, self.current_mode)?;
+        } else {
+            device_operations::control::fire_stage(&mut self.protocol, stage_num)?;
+        }
+        self.current_mode = Some(DeviceMode::Remote);
+        Ok(())
     }
 
     /// Fire with a specific current value
-    /// 
+    ///
     /// Fires the device with a custom current value using optimization
     /// settings for improved performance when appropriate.
-    /// 
+    ///
     /// # Arguments
     /// * `current_ma` - The current value in milliamps
-    /// 
+    ///
     /// # Returns
     /// * `Result<()>` - Success or firing error
-    /// 
+    ///
     /// # Example
     /// ```
     /// device.fire_with_current(2500)?;
     /// ```
     pub fn fire_with_current(&mut self, current_ma: u16) -> Result<()> {
-        DeviceControlOperations::fire_with_current(self, current_ma)
+        if self.optimize_transitions {
+            device_operations::control::fire_with_current_smart(&mut self.protocol, current_ma, self.current_mode)?;
+        } else {
+            device_operations::control::fire_with_current(&mut self.protocol, current_ma)?;
+        }
+        self.current_mode = Some(DeviceMode::Remote);
+        Ok(())
     }
 
     /// Turn off the device
-    /// 
+    ///
     /// Safely turns off the device output while maintaining remote control
     /// capability.
-    /// 
+    ///
     /// # Returns
     /// * `Result<()>` - Success or turn-off error
-    /// 
+    ///
     /// # Example
     /// ```
     /// device.turn_off()?;
     /// ```
     pub fn turn_off(&mut self) -> Result<()> {
-        DeviceControlOperations::turn_off_device(self)
+        device_operations::control::turn_off(&mut self.protocol)?;
+        self.current_mode = Some(DeviceMode::Remote);
+        Ok(())
     }
 
     /// Shutdown and return to local mode
-    /// 
+    ///
     /// Completely shuts down the device and returns it to local mode.
-    /// 
+    ///
     /// # Returns
     /// * `Result<()>` - Success or shutdown error
-    /// 
+    ///
     /// # Example
     /// ```
     /// device.shutdown()?;
     /// ```
     pub fn shutdown(&mut self) -> Result<()> {
-        DeviceControlOperations::shutdown_device(self)
+        device_operations::control::shutdown(&mut self.protocol)?;
+        self.current_mode = None;
+        Ok(())
     }
 
     /// Get maximum current setting
-    /// 
+    ///
     /// Queries the device to determine its maximum current capability.
-    /// 
+    ///
     /// # Returns
     /// * `Result<u16>` - Maximum current in milliamps or query error
-    /// 
+    ///
     /// # Example
     /// ```
     /// let max_current = device.get_max_current()?;
     /// ```
     pub fn get_max_current(&mut self) -> Result<u16> {
-        DeviceControlOperations::get_max_current(self)
+        device_operations::control::get_max_current(&mut self.protocol)
     }
     
     /// Get power information for a specific stage
-    /// 
+    ///
     /// Retrieves power information for the specified stage.
-    /// 
+    ///
     /// # Arguments
     /// * `stage_num` - The stage number to query (1-5)
-    /// 
+    ///
     /// # Returns
     /// * `Result<PowerInfo>` - Power information or query error
-    /// 
+    ///
     /// # Example
     /// ```
     /// let power_info = device.get_power_info(2)?;
     /// ```
     pub fn get_power_info(&mut self, stage_num: u8) -> Result<PowerInfo> {
-        DeviceInformationOperations::get_power_info(self, stage_num)
+        device_operations::power::get_power_info(&mut self.protocol, stage_num)
     }
 
     /// Read current device state description
-    /// 
+    ///
     /// Provides a comprehensive description of the current device state.
-    /// 
+    ///
     /// # Returns
     /// * `Result<String>` - Device state description or query error
-    /// 
+    ///
     /// # Example
     /// ```
     /// let state = device.read_device_state()?;
     /// ```
     pub fn read_device_state(&mut self) -> Result<String> {
-        DeviceInformationOperations::get_device_state_description(self)
+        device_operations::readback::get_device_state_description(&mut self.protocol)
     }
 
     /// Read current settings summary
-    /// 
+    ///
     /// Provides a summary of current device settings.
-    /// 
+    ///
     /// # Returns
     /// * `Result<String>` - Current settings summary or query error
-    /// 
+    ///
     /// # Example
     /// ```
     /// let settings = device.read_current_settings()?;
     /// ```
     pub fn read_current_settings(&mut self) -> Result<String> {
-        DeviceInformationOperations::get_current_settings_summary(self)
+        device_operations::readback::get_current_settings_summary(&mut self.protocol)
     }
 
     /// Read remote mode state
@@ -396,33 +400,33 @@ impl LumidoxDevice {
     }
 
     /// Read ARM current setting
-    /// 
+    ///
     /// Queries the device to retrieve the current ARM current setting.
-    /// 
+    ///
     /// # Returns
     /// * `Result<u16>` - ARM current in milliamps or query error
-    /// 
+    ///
     /// # Example
     /// ```
     /// let arm_current = device.read_arm_current()?;
     /// ```
     pub fn read_arm_current(&mut self) -> Result<u16> {
-        DeviceInformationOperations::read_arm_current(self)
+        device_operations::readback::read_arm_current(&mut self.protocol)
     }
 
     /// Read FIRE current setting
-    /// 
+    ///
     /// Queries the device to retrieve the current FIRE current setting.
-    /// 
+    ///
     /// # Returns
     /// * `Result<u16>` - FIRE current in milliamps or query error
-    /// 
+    ///
     /// # Example
     /// ```
     /// let fire_current = device.read_fire_current()?;
     /// ```
     pub fn read_fire_current(&mut self) -> Result<u16> {
-        DeviceInformationOperations::read_fire_current(self)
+        device_operations::readback::read_fire_current(&mut self.protocol)
     }
 
     /// Set ARM current value

@@ -2,13 +2,51 @@
 //!
 //! This module provides specialized error handling utilities and documentation
 //! for device operation and hardware-related errors in the Lumidox II Controller.
-//! 
-//! Device errors typically occur during:
-//! - Device initialization and connection
-//! - Hardware communication failures
-//! - Device state transitions
-//! - Firmware or hardware incompatibilities
-//! - Device timeout or unresponsive conditions
+//!
+//! ## Module Structure (8+ levels deep)
+//! ```
+//! src/core/error/device_errors/             (Level 4)
+//! ├── connection/                           (Level 5)
+//! │   ├── timeout/                          (Level 6)
+//! │   │   ├── network/                      (Level 7)
+//! │   │   │   └── mod.rs                    (Level 8) - Network timeout errors
+//! │   │   └── serial/                       (Level 7)
+//! │   │       └── mod.rs                    (Level 8) - Serial timeout errors
+//! │   ├── initialization/                   (Level 6)
+//! │   │   └── mod.rs                        (Level 7) - Device init errors
+//! │   └── mod.rs                            (Level 6) - Connection error coordination
+//! ├── state/                                (Level 5)
+//! │   ├── transitions/                      (Level 6)
+//! │   │   └── mod.rs                        (Level 7) - State transition errors
+//! │   └── validation/                       (Level 6)
+//! │       └── mod.rs                        (Level 7) - State validation errors
+//! ├── firmware/                             (Level 5)
+//! │   ├── compatibility/                    (Level 6)
+//! │   │   └── mod.rs                        (Level 7) - Version compatibility
+//! │   └── validation/                       (Level 6)
+//! │       └── mod.rs                        (Level 7) - Firmware validation
+//! └── hardware/                             (Level 5)
+//!     ├── malfunction/                      (Level 6)
+//!     │   └── mod.rs                        (Level 7) - Hardware malfunction
+//!     └── diagnostics/                      (Level 6)
+//!         └── mod.rs                        (Level 7) - Hardware diagnostics
+//! ```
+//!
+//! Each sub-module follows the prescribed schema with single responsibility
+//! and maintains <150 lines per file.
+
+// Import specialized sub-modules
+pub mod connection;
+pub mod state;
+pub mod firmware;
+pub mod hardware;
+
+// Re-export commonly used items for convenience
+// Note: Utilities are available but not currently used in the codebase
+// pub use connection::{ConnectionErrorUtils, ConnectionErrorCategory};
+// pub use state::{StateErrorUtils, StateErrorCategory};
+// pub use firmware::{FirmwareErrorUtils, FirmwareErrorCategory};
+// pub use hardware::{HardwareErrorUtils, HardwareErrorCategory};
 
 use super::types::LumidoxError;
 

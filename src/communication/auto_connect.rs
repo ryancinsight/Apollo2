@@ -158,7 +158,7 @@ impl AutoConnector {
             let connection_time = start_time.elapsed();
             connection_log.push("No compatible ports found".to_string());
             
-            let result = AutoConnectResult {
+            let _result = AutoConnectResult {
                 success: false,
                 port_name: None,
                 baud_rate: None,
@@ -267,7 +267,7 @@ impl AutoConnector {
         let connection_time = start_time.elapsed();
         connection_log.push("Auto-detection failed for all candidates".to_string());
         
-        let result = AutoConnectResult {
+        let _result = AutoConnectResult {
             success: false,
             port_name: None,
             baud_rate: None,

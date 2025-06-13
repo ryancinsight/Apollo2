@@ -5,10 +5,10 @@
 //! All tests use mock devices to ensure deterministic behavior without
 //! requiring actual hardware.
 
-pub mod unit_tests;
-pub mod integration_tests;
-pub mod error_scenarios;
+// TODO: Create these test modules when needed
+// pub mod unit_tests;
+// pub mod integration_tests;
+// pub mod error_scenarios;
 pub mod mock_device;
 
 // Re-export commonly used test utilities
-pub use mock_device::*;

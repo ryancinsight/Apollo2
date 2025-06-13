@@ -19,5 +19,4 @@ pub mod result_types;
 // Re-export commonly used types
 pub use device_control::DeviceControlOperations;
 pub use firing::StageOperations;
-pub use information::InformationOperations;
-pub use result_types::{OperationResult, OperationResponse, DeviceOperationData};
+pub use result_types::DeviceOperationData;

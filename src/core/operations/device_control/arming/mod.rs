@@ -83,7 +83,7 @@ impl ArmingOperations {
                 ).with_context("operation".to_string(), "device_arming".to_string()))
             }
             Err(e) => {
-                let data = DeviceOperationData::DeviceControl {
+                let _data = DeviceOperationData::DeviceControl {
                     previous_state,
                     new_state: Self::get_device_state_string(device),
                     success: false,

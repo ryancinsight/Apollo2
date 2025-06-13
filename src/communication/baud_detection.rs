@@ -11,7 +11,7 @@
 //! - Fallback to default baud rate if detection fails
 
 use crate::core::{LumidoxError, Result};
-use serialport::SerialPort;
+
 use std::time::Duration;
 
 /// Baud rate detection configuration and settings

@@ -15,4 +15,3 @@ pub mod error_scenarios;
 pub mod mock_device;
 
 // Re-export test utilities for convenience
-pub use mock_device::*;

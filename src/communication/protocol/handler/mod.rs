@@ -15,8 +15,7 @@
 //! - Comprehensive protocol validation and error detection
 //! - Seamless integration maintaining the existing public API
 
-use crate::core::{LumidoxError, Result};
-use super::constants::DEFAULT_TIMEOUT;
+use crate::core::Result;
 use serialport::SerialPort;
 
 // Import specialized sub-modules
@@ -27,9 +26,9 @@ pub mod validation;
 
 // Re-export commonly used items for convenience
 pub use transmission::{CommandTransmission, CommandTransmissionStats};
-pub use response::{ResponseProcessor, ResponseData, ResponseDataType, ResponseProcessingStats};
-pub use connection::{ConnectionManager, ConnectionInfo, ConnectionHealth, HealthStatus};
-pub use validation::{ProtocolValidator, ValidationReport, TimingType};
+pub use response::ResponseProcessor;
+pub use connection::{ConnectionManager, ConnectionInfo, ConnectionHealth};
+pub use validation::{ProtocolValidator, ValidationReport};
 
 /// Low-level protocol handler with enhanced modular architecture
 /// 

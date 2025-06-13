@@ -17,7 +17,3 @@ pub mod system_errors;
 
 // Re-export commonly used items for convenience
 pub use types::LumidoxError;
-pub use device_errors::{DeviceErrorCategory, DeviceErrorUtils};
-pub use communication_errors::{CommunicationErrorCategory, CommunicationErrorUtils};
-pub use validation_errors::{ValidationErrorCategory, ValidationErrorUtils};
-pub use system_errors::{SystemErrorCategory, SystemErrorUtils};

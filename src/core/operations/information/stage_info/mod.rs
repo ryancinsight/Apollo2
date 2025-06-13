@@ -15,8 +15,9 @@ use crate::core::operations::result_types::{OperationResult, OperationResponse, 
 use crate::device::LumidoxDevice;
 use std::time::Instant;
 
-#[cfg(test)]
-mod tests;
+// TODO: Create tests module when needed
+// #[cfg(test)]
+// mod tests;
 
 /// Stage information operations for unified stage data functionality
 pub struct StageInfoOperations;

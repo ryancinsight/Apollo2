@@ -6,7 +6,6 @@
 
 use super::super::ArmingOperations;
 use super::mock_device::*;
-use crate::core::operations::result_types::DeviceOperationData;
 use crate::device::models::DeviceMode;
 
 /// Tests for arming readiness validation
@@ -63,7 +62,7 @@ mod operation_response_tests {
 
     #[test]
     fn test_arming_response_structure_success() {
-        let mut device = create_ready_mock_device();
+        let device = create_ready_mock_device();
         
         // Note: This test would need actual LumidoxDevice integration
         // For now, we test the validation logic which is the core of the operation

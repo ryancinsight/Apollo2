@@ -15,7 +15,7 @@ pub mod parsing;
 
 // Re-export commonly used items for convenience
 pub use validation::InputValidator;
-pub use parsing::{InputParser, MenuChoice, MenuCategory, MenuAction, ParsedCommand};
+pub use parsing::{InputParser, MenuChoice};
 
 use crate::core::Result;
 use std::io::{self, Write};

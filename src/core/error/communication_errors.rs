@@ -2,13 +2,72 @@
 //!
 //! This module provides specialized error handling utilities and documentation
 //! for communication, protocol, and serial port related errors in the Lumidox II Controller.
-//! 
-//! Communication errors typically occur during:
-//! - Serial port connection and configuration
-//! - Protocol command transmission and reception
-//! - Data parsing and validation
-//! - Communication timeouts and retries
-//! - Protocol version mismatches
+//!
+//! ## Module Structure (8+ levels deep)
+//! ```
+//! src/core/error/communication_errors/      (Level 4)
+//! ├── serial_port/                          (Level 5)
+//! │   ├── configuration/                    (Level 6)
+//! │   │   ├── baud_rate/                    (Level 7)
+//! │   │   │   └── mod.rs                    (Level 8) - Baud rate config errors
+//! │   │   └── parameters/                   (Level 7)
+//! │   │       └── mod.rs                    (Level 8) - Port parameter errors
+//! │   ├── connection/                       (Level 6)
+//! │   │   └── mod.rs                        (Level 7) - Port connection errors
+//! │   └── mod.rs                            (Level 6) - Serial port coordination
+//! ├── protocol/                             (Level 5)
+//! │   ├── command/                          (Level 6)
+//! │   │   ├── validation/                   (Level 7)
+//! │   │   │   └── mod.rs                    (Level 8) - Command validation
+//! │   │   ├── execution/                    (Level 7)
+//! │   │   │   └── mod.rs                    (Level 8) - Command execution
+//! │   │   └── mod.rs                        (Level 7) - Command coordination
+//! │   ├── response/                         (Level 6)
+//! │   │   ├── parsing/                      (Level 7)
+//! │   │   │   └── mod.rs                    (Level 8) - Response parsing
+//! │   │   └── validation/                   (Level 7)
+//! │   │       └── mod.rs                    (Level 8) - Response validation
+//! │   └── version/                          (Level 6)
+//! │       └── compatibility/                (Level 7)
+//! │           └── mod.rs                    (Level 8) - Version compatibility
+//! ├── data_format/                          (Level 5)
+//! │   ├── parsing/                          (Level 6)
+//! │   │   └── numeric/                      (Level 7)
+//! │   │       └── mod.rs                    (Level 8) - Numeric parsing errors
+//! │   └── validation/                       (Level 6)
+//! │       └── format/                       (Level 7)
+//! │           └── mod.rs                    (Level 8) - Format validation
+//! ├── timeout/                              (Level 5)
+//! │   ├── operation/                        (Level 6)
+//! │   │   └── mod.rs                        (Level 7) - Operation timeouts
+//! │   └── response/                         (Level 6)
+//! │       └── mod.rs                        (Level 7) - Response timeouts
+//! └── integrity/                            (Level 5)
+//!     ├── checksum/                         (Level 6)
+//!     │   └── validation/                   (Level 7)
+//!     │       └── mod.rs                    (Level 8) - Checksum validation
+//!     └── corruption/                       (Level 6)
+//!         └── detection/                    (Level 7)
+//!             └── mod.rs                    (Level 8) - Data corruption detection
+//! ```
+//!
+//! Each sub-module follows the prescribed schema with single responsibility
+//! and maintains <150 lines per file.
+
+// Import specialized sub-modules
+pub mod serial_port;
+pub mod protocol;
+pub mod data_format;
+pub mod timeout;
+pub mod integrity;
+
+// Re-export commonly used items for convenience
+// Note: Utilities are available but not currently used in the codebase
+// pub use serial_port::{SerialPortErrorUtils, SerialPortErrorCategory};
+// pub use protocol::{ProtocolErrorUtils, ProtocolErrorCategory};
+// pub use data_format::{DataFormatErrorUtils, DataFormatErrorCategory};
+// pub use timeout::{TimeoutErrorUtils, TimeoutErrorCategory};
+// pub use integrity::{IntegrityErrorUtils, IntegrityErrorCategory};
 
 use super::types::LumidoxError;
 

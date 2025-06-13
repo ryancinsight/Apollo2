@@ -2,7 +2,6 @@
 mod core;
 mod communication;
 mod device;
-mod operations;
 mod ui;
 
 use core::Result;
@@ -48,7 +47,7 @@ fn main() -> Result<()> {
 /// - If no CLI arguments and in terminal environment, uses CLI interface
 #[cfg(all(feature = "gui", feature = "cli"))]
 fn run_dual_mode() -> Result<()> {
-    use clap::Parser;
+    
     use std::env;
 
     // Check if CLI arguments are provided (beyond just the program name)
@@ -92,7 +91,7 @@ fn run_cli_only() -> Result<()> {
 #[cfg(feature = "cli")]
 fn run_cli_interface() -> Result<()> {
     use clap::Parser;
-    use ui::{Cli, Commands, run_interactive_mode_with_optimization, run_command_mode_with_optimization, list_serial_ports};
+    use ui::Cli;
 
     let cli = Cli::parse();
 

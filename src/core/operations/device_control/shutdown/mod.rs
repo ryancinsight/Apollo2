@@ -15,8 +15,9 @@ use crate::core::operations::result_types::{OperationResult, OperationResponse, 
 use crate::device::LumidoxDevice;
 use std::time::Instant;
 
-#[cfg(test)]
-mod tests;
+// TODO: Create tests module when needed
+// #[cfg(test)]
+// mod tests;
 
 /// Shutdown operations for unified device shutdown functionality
 pub struct ShutdownOperations;
@@ -80,7 +81,7 @@ impl ShutdownOperations {
                 ).with_context("operation".to_string(), "device_shutdown".to_string()))
             }
             Err(e) => {
-                let data = DeviceOperationData::DeviceControl {
+                let _data = DeviceOperationData::DeviceControl {
                     previous_state,
                     new_state: Self::get_device_state_string(device),
                     success: false,

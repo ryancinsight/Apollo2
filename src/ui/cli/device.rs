@@ -5,7 +5,7 @@
 //! baud rate detection, and manual configuration.
 
 use crate::core::{LumidoxError, Result};
-use crate::communication::{ProtocolHandler, protocol::constants, AutoConnector, AutoConnectConfig};
+use crate::communication::{ProtocolHandler, protocol::constants, AutoConnector};
 use crate::device::LumidoxDevice;
 
 /// Create a new device controller from a port name

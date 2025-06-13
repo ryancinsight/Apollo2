@@ -6,7 +6,6 @@
 
 use super::super::ArmingOperations;
 use super::mock_device::*;
-use crate::core::operations::result_types::DeviceOperationData;
 use crate::device::models::DeviceMode;
 
 /// Tests for complete arming operation flow
@@ -130,7 +129,7 @@ mod consistency_tests {
 
     #[test]
     fn test_validation_does_not_modify_state() {
-        let mut device = create_ready_mock_device();
+        let device = create_ready_mock_device();
         let initial_state = device.current_mode();
         let initial_call_count = device.get_arm_call_count();
         

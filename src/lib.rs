@@ -71,13 +71,10 @@ pub mod communication;
 // Device control and management
 pub mod device;
 
-// Shared operations for CLI and GUI
-pub mod operations;
-
 // User interface components
 pub mod ui;
 
 // Re-export commonly used items for convenience
 pub use core::{LumidoxError, Result};
-pub use communication::{ProtocolHandler, AutoConnector, AutoConnectConfig};
+pub use communication::{ProtocolHandler, AutoConnector};
 pub use device::LumidoxDevice;

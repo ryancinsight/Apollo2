@@ -11,7 +11,7 @@
 //! - Ranking of candidate ports by compatibility score
 
 use crate::core::{LumidoxError, Result};
-use serialport::{SerialPort, SerialPortInfo, SerialPortType};
+use serialport::{SerialPortInfo, SerialPortType};
 use std::time::Duration;
 
 /// Port detection configuration and settings
@@ -242,7 +242,7 @@ impl PortDetector {
             .timeout(config.identification_timeout)
             .open();
         
-        let mut port = match port_result {
+        let port = match port_result {
             Ok(p) => p,
             Err(_) => return (false, None),
         };

@@ -61,6 +61,101 @@ lumidox-ii-controller --port COM3 info
 lumidox-ii-controller --port COM3 --auto info
 ```
 
+## Modular CLI Operations Architecture
+
+The Lumidox II Controller now features a **7-level deep hierarchical CLI operations architecture** that provides clean separation of concerns and enhanced modularity.
+
+### Architecture Overview
+```
+src/ui/cli/commands/operations/          (Level 5)
+├── device_control/                      (Level 6)
+│   ├── stage_firing.rs                  (Level 7) - Stage 1-5 firing operations
+│   ├── current_control.rs               (Level 7) - Custom current control
+│   └── power_control.rs                 (Level 7) - Arm/Off power control
+├── information/                         (Level 6)
+│   ├── device_info.rs                   (Level 7) - Device information retrieval
+│   ├── status_reading.rs                (Level 7) - Status reading operations
+│   └── state_reading.rs                 (Level 7) - State reading operations
+├── parameters/                          (Level 6)
+│   ├── current_settings.rs              (Level 7) - Current setting operations
+│   └── stage_parameters.rs              (Level 7) - Stage parameter operations
+└── port_management/                     (Level 6)
+    ├── detection.rs                     (Level 7) - Port detection operations
+    ├── testing.rs                       (Level 7) - Baud rate testing
+    └── diagnostics.rs                   (Level 7) - Port diagnostics
+```
+
+### Operations Coordinator Integration
+```rust
+use lumidox_ii_controller::ui::cli::commands::operations::{
+    OperationsCoordinator, StageFiringOperations, CurrentControlOperations,
+    PowerControlOperations, DeviceInfoOperations, StatusReadingOperations,
+    StateReadingOperations
+};
+
+// Create operations coordinator
+let coordinator = OperationsCoordinator::new();
+
+// Execute commands through specialized operations
+let context = &mut CommandExecutionContext::new(device);
+let config = &CommandExecutionConfig::default();
+
+// Stage firing operation
+let result = coordinator.execute_command(&Commands::Stage1, context, config)?;
+
+// Device info operation
+let result = coordinator.execute_command(&Commands::Info, context, config)?;
+```
+
+### Specialized Operation Modules
+
+#### Device Control Operations
+```rust
+use lumidox_ii_controller::ui::cli::commands::operations::device_control::{
+    StageFiringOperations, CurrentControlOperations, PowerControlOperations
+};
+
+// Stage firing with comprehensive validation and testing
+let stage_ops = StageFiringOperations::new();
+let result = stage_ops.execute(&Commands::Stage1, context, config)?;
+
+// Custom current control with safety validation
+let current_ops = CurrentControlOperations::new();
+let result = current_ops.execute(&Commands::Current { value: 1500 }, context, config)?;
+
+// Power control operations (Arm/Off)
+let power_ops = PowerControlOperations::new();
+let result = power_ops.execute(&Commands::Arm, context, config)?;
+```
+
+#### Information Operations
+```rust
+use lumidox_ii_controller::ui::cli::commands::operations::information::{
+    DeviceInfoOperations, StatusReadingOperations, StateReadingOperations
+};
+
+// Device information retrieval
+let info_ops = DeviceInfoOperations::new();
+let result = info_ops.execute(&Commands::Info, context, config)?;
+
+// Status reading with comprehensive health checks
+let status_ops = StatusReadingOperations::new();
+let result = status_ops.execute(&Commands::Status, context, config)?;
+
+// State reading operations
+let state_ops = StateReadingOperations::new();
+let result = state_ops.execute(&Commands::ReadState, context, config)?;
+```
+
+### Benefits of Modular Architecture
+
+- **Single Responsibility**: Each module handles exactly one type of operation (<150 lines)
+- **Comprehensive Testing**: 67+ unit tests across all operation modules
+- **Clean Separation**: Device control, information, parameters, and port management are isolated
+- **Easy Extension**: New operations can be added without affecting existing code
+- **Type Safety**: Strong typing ensures correct operation routing and validation
+- **Backward Compatibility**: Existing CLI commands work unchanged
+
 ## Programming Interface
 
 ### Quick Auto-Connection

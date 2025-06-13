@@ -15,8 +15,9 @@ use crate::core::operations::result_types::{OperationResult, OperationResponse, 
 use crate::device::LumidoxDevice;
 use std::time::Instant;
 
-#[cfg(test)]
-mod tests;
+// TODO: Create tests module when needed
+// #[cfg(test)]
+// mod tests;
 
 /// Parameter operations for unified parameter reading functionality
 pub struct ParameterOperations;
@@ -82,7 +83,7 @@ impl ParameterOperations {
                 ).with_context("operation".to_string(), "parameter_reading".to_string()))
             }
             Err(e) => {
-                let data = DeviceOperationData::ParameterInfo {
+                let _data = DeviceOperationData::ParameterInfo {
                     parameter_name: "ARM Current".to_string(),
                     value: None,
                     units: Some("mA".to_string()),
