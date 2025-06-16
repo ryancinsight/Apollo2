@@ -9,7 +9,6 @@
 //! - Custom current firing option with maximum current display
 //! - Formatted output for stage selection menu
 //! - Integration with device power information queries
-//! - mW/cm² irradiance calculations for each stage
 
 use crate::core::{Result, IrradianceCalculator};
 use crate::device::LumidoxDevice;
@@ -18,9 +17,9 @@ use crate::device::LumidoxDevice;
 pub struct StageOptionsDisplay;
 
 impl StageOptionsDisplay {
-    /// Display stage firing options with power information and mW/cm²
+    /// Display stage firing options with power information
     /// 
-    /// Shows stages 1-5 with their power information and irradiance calculations if available,
+    /// Shows stages 1-5 with their power information if available,
     /// providing users with detailed information about each stage's
     /// power characteristics before selection.
     /// 
@@ -33,16 +32,14 @@ impl StageOptionsDisplay {
     /// # Example
     /// ```
     /// StageOptionsDisplay::display_stage_options(&device)?;
-    /// ```
-    pub fn display_stage_options(device: &mut LumidoxDevice) -> Result<()> {
-        // Display stage options with power info, current info, and mW/cm²
+    /// ```    pub fn display_stage_options(device: &mut LumidoxDevice) -> Result<()> {
+        // Display stage options with power info and current info
         for stage in 1..=5 {
             // Try to get both power info and current info
             let power_info_result = device.get_power_info(stage);
             let fire_current_result = device.get_stage_fire_current(stage);
             
-            match (power_info_result, fire_current_result) {
-                (Ok(power_info), Ok(fire_current)) => {
+            match (power_info_result, fire_current_result) {                (Ok(power_info), Ok(fire_current)) => {
                     // Display with both power, current info, and mW/cm²
                     let irradiance_display = IrradianceCalculator::get_irradiance_display(&power_info);
                     println!("{}) Turn on stage {}: {}mA, {} {}, {} {}{}", 
@@ -120,7 +117,7 @@ impl StageOptionsDisplay {
     /// Get stage option description for a specific stage
     /// 
     /// Returns a formatted description for a specific stage option,
-    /// including power information and mW/cm² if available.
+    /// including power information if available.
     /// 
     /// # Arguments
     /// * `device` - Reference to the device for power information
@@ -140,13 +137,11 @@ impl StageOptionsDisplay {
                 format!("Invalid stage number: {}. Must be 1-5.", stage)
             ));
         }
-        
-        // Try to get both power info and current info
+          // Try to get both power info and current info
         let power_info_result = device.get_power_info(stage);
         let fire_current_result = device.get_stage_fire_current(stage);
         
-        match (power_info_result, fire_current_result) {
-            (Ok(power_info), Ok(fire_current)) => {
+        match (power_info_result, fire_current_result) {            (Ok(power_info), Ok(fire_current)) => {
                 // Include both power, current info, and mW/cm²
                 let irradiance_display = IrradianceCalculator::get_irradiance_display(&power_info);
                 Ok(format!("{}) Turn on stage {}: {}mA, {} {}, {} {}{}", 

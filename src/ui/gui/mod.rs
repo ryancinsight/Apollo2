@@ -21,8 +21,10 @@
 
 use iced::{Element, Task, Theme};
 use crate::core::{LumidoxError, DeviceControlOperations, DeviceOperationData};
+use crate::core::calculations::irradiance::IrradianceCalculator;
 use crate::ui::cli::device::create_device_controller_with_fallback;
 use crate::device::LumidoxDevice;
+use crate::device::models::PowerInfo;
 use std::error::Error;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -1037,11 +1039,35 @@ fn create_stage_box(stage: u8, stage_info: Option<&StageInfo>, connected: bool) 
             if let (Some(power), Some(units)) = (&info.total_power, &info.total_units) {
                 info_column = info_column.push(text(format!("{:.1} {}", power, units)).size(10));
             }
-            
-            // Show per-power if available
+              // Show per-power if available
             if let (Some(per_power), Some(per_units)) = (&info.per_power, &info.per_units) {
                 info_column = info_column.push(text(format!("{:.1} {}", per_power, per_units)).size(10));
-            }            // Show error if there's partial failure
+            }
+
+            // Calculate and show irradiance if power data is available
+            if let (Some(total_power), Some(total_units), Some(per_power), Some(per_units)) = 
+                (&info.total_power, &info.total_units, &info.per_power, &info.per_units) {
+                // Create PowerInfo for irradiance calculation
+                let power_info = PowerInfo {
+                    total_power: *total_power,
+                    total_units: total_units.clone(),
+                    per_power: *per_power,
+                    per_units: per_units.clone(),
+                };
+                
+                match IrradianceCalculator::calculate_irradiance(&power_info) {
+                    Ok(irradiance_data) => {
+                        info_column = info_column.push(
+                            text(format!("{:.3} mW/cm²", irradiance_data.total_irradiance_mw_cm2))
+                                .size(9)
+                                .color(iced::Color::from_rgb(0.2, 0.8, 0.4))
+                        );
+                    }
+                    Err(_) => {
+                        info_column = info_column.push(text("Irradiance: N/A").size(9));
+                    }
+                }
+            }// Show error if there's partial failure
             if info.fire_current_ma.is_none() {
                 info_column = info_column.push(text("Current: N/A").size(10));
             }
@@ -1064,6 +1090,33 @@ fn create_stage_box(stage: u8, stage_info: Option<&StageInfo>, connected: bool) 
                 info_column = info_column.push(text(format!("{:.1} {}", per_power, per_units)).size(10));
             } else {
                 info_column = info_column.push(text("Per-LED: N/A").size(10));
+            }
+
+            // Calculate and show irradiance
+            if let (Some(total_power), Some(total_units), Some(per_power), Some(per_units)) = 
+                (&info.total_power, &info.total_units, &info.per_power, &info.per_units) {
+                // Create PowerInfo for irradiance calculation
+                let power_info = PowerInfo {
+                    total_power: *total_power,
+                    total_units: total_units.clone(),
+                    per_power: *per_power,
+                    per_units: per_units.clone(),
+                };
+                
+                match IrradianceCalculator::calculate_irradiance(&power_info) {
+                    Ok(irradiance_data) => {
+                        info_column = info_column.push(
+                            text(format!("{:.3} mW/cm²", irradiance_data.total_irradiance_mw_cm2))
+                                .size(9)
+                                .color(iced::Color::from_rgb(0.2, 0.8, 0.4))
+                        );
+                    }
+                    Err(_) => {
+                        info_column = info_column.push(text("Irradiance: N/A").size(9));
+                    }
+                }
+            } else {
+                info_column = info_column.push(text("Irradiance: N/A").size(9));
             }
             
             info_column.spacing(2).align_x(Alignment::Center)

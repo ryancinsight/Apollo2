@@ -17,6 +17,7 @@ use iced::{
     Element, Length, Alignment, Color, Background, Border, Theme,
 };
 use crate::core::Result;
+use crate::core::calculations::irradiance::IrradianceCalculator;
 use crate::device::LumidoxDevice;
 
 /// Information display components and functionality
@@ -226,7 +227,7 @@ impl InfoDisplay {
     /// Create stage information display
     /// 
     /// Creates a display showing stage-specific information including
-    /// power details for each stage matching CLI stage info output.
+    /// power details and irradiance calculations for each stage matching CLI stage info output.
     /// 
     /// # Arguments
     /// * `device` - Reference to device for stage information
@@ -243,16 +244,63 @@ impl InfoDisplay {
             let mut stage_rows = Vec::new();
             
             for stage in 1..=5 {
-                let power_info = dev.get_power_info(stage)
-                    .map(|p| format!("{} {} ({} {})", 
-                        p.total_power, p.total_units, 
-                        p.per_power, p.per_units))
-                    .unwrap_or_else(|_| "Error".to_string());
-                
-                stage_rows.push(Self::create_parameter_row(
-                    &format!("Stage {}:", stage), 
-                    &power_info
-                ));
+                match dev.get_power_info(stage) {
+                    Ok(power_info) => {
+                        // Format power information
+                        let power_text = format!("{} {} ({} {})", 
+                            power_info.total_power, power_info.total_units, 
+                            power_info.per_power, power_info.per_units);
+                        
+                        // Calculate irradiance
+                        let irradiance_text = match IrradianceCalculator::calculate_irradiance(&power_info) {
+                            Ok(irradiance_data) => {
+                                format!("{:.3} mW/cm²", irradiance_data.total_irradiance_mw_cm2)
+                            }
+                            Err(_) => "Error calculating irradiance".to_string(),
+                        };
+                        
+                        // Create stage info with both power and irradiance
+                        let stage_info = column![
+                            row![
+                                text(&format!("Stage {}:", stage))
+                                    .size(14)
+                                    .horizontal_alignment(iced::alignment::Horizontal::Left),
+                                Space::with_width(10),
+                                text(&power_text)
+                                    .size(14)
+                                    .style(|_theme| iced::widget::text::Appearance {
+                                        color: Some(Color::from_rgb(0.3, 0.6, 0.9)),
+                                    }),
+                            ]
+                            .align_items(Alignment::Center),
+                            row![
+                                Space::with_width(70), // Indent for alignment
+                                text("Irradiance:")
+                                    .size(12)
+                                    .style(|_theme| iced::widget::text::Appearance {
+                                        color: Some(Color::from_rgb(0.6, 0.6, 0.6)),
+                                    }),
+                                Space::with_width(10),
+                                text(&irradiance_text)
+                                    .size(12)
+                                    .style(|_theme| iced::widget::text::Appearance {
+                                        color: Some(Color::from_rgb(0.2, 0.8, 0.4)),
+                                    }),
+                            ]
+                            .align_items(Alignment::Center),
+                        ]
+                        .spacing(3);
+                        
+                        stage_rows.push(stage_info);
+                    }
+                    Err(_) => {
+                        let error_info = Self::create_parameter_row(
+                            &format!("Stage {}:", stage), 
+                            "Error reading stage data"
+                        );
+                        stage_rows.push(error_info);
+                    }
+                }
             }
             
             column(stage_rows).spacing(8)
