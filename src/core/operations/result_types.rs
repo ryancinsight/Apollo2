@@ -120,6 +120,24 @@ pub enum DeviceOperationData {
         /// Device information if connected
         device_info: Option<String>,
     },
+    /// Power measurement operation results
+    PowerMeasurement {
+        /// Stage number measured
+        stage_number: u8,
+        /// Comprehensive power measurement data
+        power_data: crate::core::operations::power::PowerMeasurementData,
+        /// Validation result for the measurement
+        validation_result: crate::core::operations::power::PowerValidationResult,
+    },
+    /// All stages power measurement results
+    AllStagesPower {
+        /// Power measurement data for all stages
+        stages_data: Vec<crate::core::operations::power::PowerMeasurementData>,
+        /// Target unit for conversion (if applied)
+        target_unit: Option<crate::core::operations::power::PowerUnit>,
+        /// Timestamp when measurements were taken
+        measurement_timestamp: std::time::Instant,
+    },
 }
 
 impl<T> OperationResponse<T> {

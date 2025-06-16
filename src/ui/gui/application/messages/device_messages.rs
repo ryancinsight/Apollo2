@@ -89,6 +89,12 @@ pub enum DeviceMessage {
     
     /// Refresh all cached parameters
     RefreshParameters,
+
+    /// Refresh power values for all stages
+    ///
+    /// Triggers real-time power reading for all stages to update
+    /// GUI display with current power measurements.
+    RefreshPowerValues,
 }
 
 impl DeviceMessage {
@@ -182,6 +188,7 @@ impl DeviceMessage {
             DeviceMessage::ReadRemoteMode => "Read Remote Mode".to_string(),
             DeviceMessage::ReadStageParameters { stage } => format!("Read Stage {} Parameters", stage),
             DeviceMessage::RefreshParameters => "Refresh Parameters".to_string(),
+            DeviceMessage::RefreshPowerValues => "Refresh Power Values".to_string(),
         }
     }
     

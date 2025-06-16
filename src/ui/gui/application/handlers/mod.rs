@@ -243,6 +243,10 @@ impl HandlerCoordinator {
                 state.device_state.invalidate_cache();
                 DeviceHandlers::handle_read_device_status(device)
             }
+            DeviceMessage::RefreshPowerValues => {
+                // Handle refresh power values
+                DeviceHandlers::handle_refresh_power_values(device)
+            }
         }
     }
     
@@ -347,6 +351,8 @@ impl HandlerCoordinator {
         state.set_busy(false, None);
         
         // Process result based on type
+        let mut additional_commands = Vec::new();
+
         match &result {
             DeviceOperationResult::ConnectionResult { success, port_name, device_info, error } => {
                 if *success {
@@ -357,9 +363,23 @@ impl HandlerCoordinator {
                     if let Some(info) = device_info {
                         state.device_state.update_device_info(info.clone());
                     }
+                    // Trigger initial power refresh after successful connection
+                    additional_commands.push(Command::perform(
+                        async { Message::Device(DeviceMessage::RefreshPowerValues) },
+                        |msg| msg,
+                    ));
                 } else {
                     let error_msg = error.as_deref().unwrap_or("Unknown connection error");
                     state.set_connection_state(ConnectionState::Failed(error_msg.to_string()));
+                }
+            }
+            DeviceOperationResult::FiringResult { success, .. } => {
+                if *success {
+                    // Trigger power refresh after successful firing to update display
+                    additional_commands.push(Command::perform(
+                        async { Message::Device(DeviceMessage::RefreshPowerValues) },
+                        |msg| msg,
+                    ));
                 }
             }
             DeviceOperationResult::ParameterResult { success, parameter_name, value, error } => {
@@ -397,29 +417,44 @@ impl HandlerCoordinator {
         }
         
         // Set operation result in state
-        state.set_operation_result(result.is_success(), 
-            result.get_success_message().unwrap_or_else(|| 
+        state.set_operation_result(result.is_success(),
+            result.get_success_message().unwrap_or_else(||
                 result.get_error().unwrap_or("Operation completed").to_string()
             )
         );
-        
-        Command::none()
+
+        // Return combined commands if any additional commands were generated
+        if additional_commands.is_empty() {
+            Command::none()
+        } else {
+            Command::batch(additional_commands)
+        }
     }
     
     /// Handle application tick
-    /// 
+    ///
     /// Processes periodic application updates and maintenance.
-    /// 
+    /// Includes power value refresh for real-time monitoring.
+    ///
     /// # Arguments
     /// * `state` - Mutable reference to unified application state
-    /// 
+    ///
     /// # Returns
     /// * `Command<Message>` - Command for tick processing
     fn handle_tick(state: &mut UnifiedState) -> Command<Message> {
         // Update application state
         state.update();
-        
-        Command::none()
+
+        // If device is connected and cache is stale, trigger power refresh
+        if state.is_device_connected() && state.device_state.needs_cache_refresh() {
+            // Trigger async power refresh
+            Command::perform(
+                async { Message::Device(DeviceMessage::RefreshPowerValues) },
+                |msg| msg,
+            )
+        } else {
+            Command::none()
+        }
     }
     
     /// Combine multiple commands

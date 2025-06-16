@@ -7,6 +7,8 @@ use crate::core::Result;
 use crate::communication::{PortDetector, PortDetectionConfig, BaudDetector, BaudDetectionConfig, AutoConnector};
 use super::{args::Commands, device::create_device_controller_with_optimization};
 
+pub mod power_debug;
+
 /// Run a specific command in non-interactive mode
 pub fn run_command_mode(command: Commands, port_name: String) -> Result<()> {
     run_command_mode_with_optimization(command, port_name, true)

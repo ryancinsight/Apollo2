@@ -210,8 +210,7 @@ impl MenuDisplay {
         }
         Ok(())
     }
-    
-    /// Get all available menu choices
+      /// Get all available menu choices
     /// 
     /// Returns a list of all valid menu choice strings.
     /// 
@@ -226,10 +225,11 @@ impl MenuDisplay {
     pub fn get_all_choices() -> Vec<&'static str> {
         vec![
             "1", "2", "3", "4", "5", "6",  // Stage options
-            "7", "8", "9",                  // Control options
-            "10", "11", "12",               // Status options
-            "13", "14", "15",               // Parameter options
-            "16"                            // Current control options
+            "7", "8",                       // Control options (arm, turn off)
+            "9", "10", "11",                // Status options
+            "12", "13", "14",               // Parameter options
+            "15",                           // Current control options
+            "16"                            // Quit option
         ]
     }
     

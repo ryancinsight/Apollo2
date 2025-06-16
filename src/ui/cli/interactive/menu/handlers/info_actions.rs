@@ -318,13 +318,13 @@ impl InfoActionHandlers {
     /// ```
     pub fn handle_info_choice(device: &mut LumidoxDevice, choice: &str) -> Result<Option<bool>> {
         match choice {
-            "10" => Ok(Some(Self::handle_device_status(device)?)),
-            "11" => Ok(Some(Self::handle_remote_mode_state(device)?)),
-            "12" => Ok(Some(Self::handle_current_settings(device)?)),
-            "13" => Ok(Some(Self::handle_stage_parameters(device)?)),
-            "14" => Ok(Some(Self::handle_stage_arm_current(device)?)),
-            "15" => Ok(Some(Self::handle_stage_voltage_parameters(device)?)),
-            "16" => Ok(Some(Self::handle_set_arm_current(device)?)),
+            "9" => Ok(Some(Self::handle_device_status(device)?)),
+            "10" => Ok(Some(Self::handle_remote_mode_state(device)?)),
+            "11" => Ok(Some(Self::handle_current_settings(device)?)),
+            "12" => Ok(Some(Self::handle_stage_parameters(device)?)),
+            "13" => Ok(Some(Self::handle_stage_arm_current(device)?)),
+            "14" => Ok(Some(Self::handle_stage_voltage_parameters(device)?)),
+            "15" => Ok(Some(Self::handle_set_arm_current(device)?)),
             _ => Ok(None)
         }
     }

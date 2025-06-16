@@ -26,6 +26,26 @@ use crate::device::LumidoxDevice;
 use std::error::Error;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use std::collections::HashMap;
+
+/// Stage information for GUI display
+#[derive(Debug, Clone, Default)]
+pub struct StageInfo {
+    /// FIRE current in mA
+    pub fire_current_ma: Option<u16>,
+    /// Total power value
+    pub total_power: Option<f32>,
+    /// Total power units
+    pub total_units: Option<String>,
+    /// Per-LED power value
+    pub per_power: Option<f32>,
+    /// Per-LED power units
+    pub per_units: Option<String>,
+    /// Whether this stage info is currently being updated
+    pub updating: bool,
+    /// Error message if retrieval failed
+    pub error: Option<String>,
+}
 
 /// Run the GUI application
 /// 
@@ -412,10 +432,20 @@ pub struct AppState {
     /// UI state
     selected_stage: u8,
     custom_current: String,
+    /// Stage information for each stage (1-5)
+    stage_info: HashMap<u8, StageInfo>,
+    /// Whether we're currently refreshing stage information
+    refreshing_stages: bool,
 }
 
 impl Default for AppState {
     fn default() -> Self {
+        let mut stage_info = HashMap::new();
+        // Initialize empty stage info for stages 1-5
+        for stage in 1..=5 {
+            stage_info.insert(stage, StageInfo::default());
+        }
+
         Self {
             device: Arc::new(Mutex::new(None)),
             port_name: None,
@@ -429,6 +459,8 @@ impl Default for AppState {
             device_info: None,
             selected_stage: 1,
             custom_current: "500".to_string(),
+            stage_info,
+            refreshing_stages: false,
         }
     }
 }
@@ -447,6 +479,8 @@ impl std::fmt::Debug for AppState {
             .field("device_info", &self.device_info)
             .field("selected_stage", &self.selected_stage)
             .field("custom_current", &self.custom_current)
+            .field("stage_info", &self.stage_info)
+            .field("refreshing_stages", &self.refreshing_stages)
             .field("device", &"Arc<Mutex<Option<LumidoxDevice>>>")
             .finish()
     }
@@ -472,6 +506,10 @@ pub enum Message {
     CurrentChanged(String),
     RefreshStatus,
     ClearError,
+    /// Stage information messages
+    RefreshStageInfo,
+    StageInfoUpdated(u8, StageInfo), // stage number, stage info
+    StageInfoFailed(u8, String),     // stage number, error message
     /// Periodic updates
     Tick,
 }
@@ -528,15 +566,15 @@ fn update(state: &mut AppState, message: Message) -> Task<Message> {
             } else {
                 Task::none()
             }
-        }
-
-        Message::ConnectionSuccess(device_info) => {
+        }        Message::ConnectionSuccess(device_info) => {
             state.connecting = false;
             state.connected = true;
             state.status_message = "Connected successfully".to_string();
             state.error_message = None;
             state.device_info = Some(device_info);
-            Task::none()
+            
+            // Automatically refresh stage information when connected
+            return Task::perform(async {}, |_| Message::RefreshStageInfo);
         }
 
         Message::ConnectionFailed(error) => {
@@ -753,21 +791,117 @@ fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 }
             }
             Task::none()
-        }
-
-        Message::ClearError => {
+        }        Message::ClearError => {
             state.error_message = None;
             Task::none()
         }
 
-        _ => Task::none()
+        Message::RefreshStageInfo => {
+            if state.connected && !state.refreshing_stages {
+                state.refreshing_stages = true;
+                
+                // Mark all stages as updating
+                for stage_info in state.stage_info.values_mut() {
+                    stage_info.updating = true;
+                    stage_info.error = None;
+                }
+
+                let device_arc = state.device.clone();
+                
+                // Create tasks for all stages
+                let mut tasks = Vec::new();
+                for stage in 1u8..=5 {
+                    let device_arc_clone = device_arc.clone();
+                    tasks.push(Task::perform(
+                        async move {
+                            let mut device_guard = device_arc_clone.lock().await;
+                            if let Some(ref mut device) = *device_guard {
+                                retrieve_stage_info(device, stage).await
+                            } else {
+                                (stage, Err("Device not connected".to_string()))
+                            }
+                        },
+                        |(stage, result)| match result {
+                            Ok(info) => Message::StageInfoUpdated(stage, info),
+                            Err(error) => Message::StageInfoFailed(stage, error),
+                        },
+                    ));
+                }
+
+                // Execute all tasks
+                Task::batch(tasks)
+            } else {
+                Task::none()
+            }
+        }
+
+        Message::StageInfoUpdated(stage, mut info) => {
+            info.updating = false;
+            state.stage_info.insert(stage, info);
+            
+            // Check if all stages are done updating
+            let all_done = state.stage_info.values().all(|info| !info.updating);
+            if all_done {
+                state.refreshing_stages = false;
+            }
+            
+            Task::none()
+        }
+
+        Message::StageInfoFailed(stage, error) => {
+            if let Some(stage_info) = state.stage_info.get_mut(&stage) {
+                stage_info.updating = false;
+                stage_info.error = Some(error);
+            }
+            
+            // Check if all stages are done updating
+            let all_done = state.stage_info.values().all(|info| !info.updating);
+            if all_done {
+                state.refreshing_stages = false;
+            }
+            
+            Task::none()
+        }
+
+        _ => Task::none()    }
+}
+
+/// Async function to retrieve stage information
+async fn retrieve_stage_info(device: &mut LumidoxDevice, stage: u8) -> (u8, Result<StageInfo, String>) {
+    let mut stage_info = StageInfo::default();
+    
+    // Try to get FIRE current for this stage
+    match device.get_stage_fire_current(stage) {
+        Ok(current) => {
+            stage_info.fire_current_ma = Some(current);
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to get current for stage {}: {}", stage, e);
+            return (stage, Err(error_msg));
+        }
     }
+    
+    // Try to get power information for this stage
+    match device.get_power_info(stage) {
+        Ok(power_info) => {
+            stage_info.total_power = Some(power_info.total_power);
+            stage_info.total_units = Some(power_info.total_units);
+            stage_info.per_power = Some(power_info.per_power);
+            stage_info.per_units = Some(power_info.per_units);
+        }
+        Err(e) => {
+            // Power info failure is not critical, we can still show current
+            stage_info.error = Some(format!("Power info unavailable: {}", e));
+        }
+    }
+    
+    (stage, Ok(stage_info))
 }
 
 /// View function for Iced 0.13.x API
 fn view(state: &AppState) -> Element<Message> {
-        use iced::widget::{button, column, container, row, text, text_input, Space};
-        use iced::{Alignment, Length};
+    use iced::widget::{button, column, container, row, text, text_input, Space};
+    use iced::{Alignment, Length};
 
     // Header with title and device info
     let header = column![
@@ -791,23 +925,30 @@ fn view(state: &AppState) -> Element<Message> {
             button("Connect").on_press(Message::Connect)
         },
         Space::with_width(Length::Fixed(10.0)),
-        text(&state.status_message)
+        text(&state.status_message),
+        Space::with_width(Length::Fixed(10.0)),
+        button("Refresh Stage Info")
+            .on_press_maybe(if state.connected && !state.refreshing_stages { 
+                Some(Message::RefreshStageInfo) 
+            } else { 
+                None 
+            })
     ]
     .align_y(Alignment::Center);
 
-    // Stage firing controls
-    let stage_buttons = row![
-        button("Stage 1").on_press_maybe(if state.connected { Some(Message::FireStage(1)) } else { None }),
-        button("Stage 2").on_press_maybe(if state.connected { Some(Message::FireStage(2)) } else { None }),
-        button("Stage 3").on_press_maybe(if state.connected { Some(Message::FireStage(3)) } else { None }),
-        button("Stage 4").on_press_maybe(if state.connected { Some(Message::FireStage(4)) } else { None }),
-        button("Stage 5").on_press_maybe(if state.connected { Some(Message::FireStage(5)) } else { None }),
-    ]
-    .spacing(10);
+    // Create individual stage boxes
+    let stage_boxes: Vec<Element<Message>> = (1u8..=5).map(|stage| {
+        create_stage_box(stage, state.stage_info.get(&stage), state.connected)
+    }).collect();
+
+    // Arrange stage boxes in a row
+    let stages_row = row(stage_boxes)
+        .spacing(20)
+        .align_y(Alignment::Start);
 
     // Current control
     let current_control = row![
-        text("Current (mA):"),
+        text("Custom Current (mA):"),
         text_input("500", &state.custom_current)
             .on_input(Message::CurrentChanged)
             .width(Length::Fixed(100.0)),
@@ -823,15 +964,13 @@ fn view(state: &AppState) -> Element<Message> {
             .on_press_maybe(if state.connected { Some(Message::ArmDevice) } else { None }),
         button("Turn Off")
             .on_press_maybe(if state.connected { Some(Message::TurnOff) } else { None }),
-        button("Refresh")
+        button("Refresh Status")
             .on_press_maybe(if state.connected { Some(Message::RefreshStatus) } else { None })
     ]
-    .spacing(10);
-
-    // Error display
+    .spacing(10);    // Error display
     let error_display = if let Some(ref error) = state.error_message {
         column![
-            text(error),
+            text(error), // Removed styling for now
             button("Clear").on_press(Message::ClearError)
         ]
         .spacing(5)
@@ -839,32 +978,142 @@ fn view(state: &AppState) -> Element<Message> {
         column![]
     };
 
-        // Main layout
-        let content = column![
-            header,
-            Space::with_height(Length::Fixed(20.0)),
-            connection_controls,
-            Space::with_height(Length::Fixed(20.0)),
-            text("Stage Controls").size(18),
-            stage_buttons,
-            Space::with_height(Length::Fixed(20.0)),
-            text("Current Control").size(18),
-            current_control,
-            Space::with_height(Length::Fixed(20.0)),
-            text("Device Controls").size(18),
-            device_controls,
-            Space::with_height(Length::Fixed(20.0)),
-            error_display,
-        ]
-        .spacing(10)
-        .align_x(Alignment::Center)
-        .padding(20);
+    // Main layout
+    let content = column![
+        header,
+        Space::with_height(Length::Fixed(20.0)),
+        connection_controls,
+        Space::with_height(Length::Fixed(30.0)),
+        text("Stage Controls").size(18),
+        Space::with_height(Length::Fixed(10.0)),
+        stages_row,
+        Space::with_height(Length::Fixed(30.0)),
+        text("Custom Current Control").size(18),
+        current_control,
+        Space::with_height(Length::Fixed(20.0)),
+        text("Device Controls").size(18),
+        device_controls,
+        Space::with_height(Length::Fixed(20.0)),
+        error_display,
+    ]
+    .spacing(10)
+    .align_x(Alignment::Center)
+    .padding(20);
 
     container(content)
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill)
+        .into()
+}
+
+/// Create a stage box with button and information
+fn create_stage_box(stage: u8, stage_info: Option<&StageInfo>, connected: bool) -> Element<Message> {
+    use iced::widget::{button, column, container, text, Space};
+    use iced::{Alignment, Length, Border};    // Stage button
+    let stage_button = button(text(format!("Stage {}", stage)))
+        .width(Length::Fixed(120.0))
+        .on_press_maybe(if connected { Some(Message::FireStage(stage)) } else { None });
+
+    // Stage information display
+    let stage_info_display = if let Some(info) = stage_info {
+        if info.updating {
+            column![
+                text("Updating...").size(12)
+            ]
+            .spacing(2)
+            .align_x(Alignment::Center)
+        } else if let Some(ref _error) = info.error {
+            // Show error but also show available info
+            let mut info_column = column![];
+            
+            // Show current if available
+            if let Some(current) = info.fire_current_ma {
+                info_column = info_column.push(text(format!("{}mA", current)).size(12));
+            }
+            
+            // Show power if available
+            if let (Some(power), Some(units)) = (&info.total_power, &info.total_units) {
+                info_column = info_column.push(text(format!("{:.1} {}", power, units)).size(10));
+            }
+            
+            // Show per-power if available
+            if let (Some(per_power), Some(per_units)) = (&info.per_power, &info.per_units) {
+                info_column = info_column.push(text(format!("{:.1} {}", per_power, per_units)).size(10));
+            }            // Show error if there's partial failure
+            if info.fire_current_ma.is_none() {
+                info_column = info_column.push(text("Current: N/A").size(10));
+            }
+            
+            info_column.spacing(2).align_x(Alignment::Center)
+        } else {
+            // Show complete information
+            let mut info_column = column![];            // Show current
+            if let Some(current) = info.fire_current_ma {
+                info_column = info_column.push(text(format!("{}mA", current)).size(12));
+            } else {
+                info_column = info_column.push(text("Current: N/A").size(10));
+            }            // Show total power
+            if let (Some(power), Some(units)) = (&info.total_power, &info.total_units) {
+                info_column = info_column.push(text(format!("{:.1} {}", power, units)).size(10));
+            } else {
+                info_column = info_column.push(text("Power: N/A").size(10));
+            }            // Show per-LED power
+            if let (Some(per_power), Some(per_units)) = (&info.per_power, &info.per_units) {
+                info_column = info_column.push(text(format!("{:.1} {}", per_power, per_units)).size(10));
+            } else {
+                info_column = info_column.push(text("Per-LED: N/A").size(10));
+            }
+            
+            info_column.spacing(2).align_x(Alignment::Center)
+        }    } else {
+        column![
+            text("No Info").size(12)
+        ]
+        .spacing(2)
+        .align_x(Alignment::Center)
+    };
+
+    // Combine button and info in a box
+    let stage_content = column![
+        stage_button,
+        Space::with_height(Length::Fixed(10.0)),
+        stage_info_display
+    ]
+    .spacing(5)
+    .align_x(Alignment::Center)
+    .width(Length::Fixed(140.0));
+
+    // Container with border to create the "box" effect
+    container(stage_content)
+        .padding(15)
+        .style(move |_theme: &iced::Theme| {
+            container::Style {
+                border: Border {
+                    color: if connected { 
+                        iced::Color::from_rgb(0.4, 0.4, 0.4) 
+                    } else { 
+                        iced::Color::from_rgb(0.2, 0.2, 0.2) 
+                    },
+                    width: 1.0,
+                    radius: 8.0.into(),
+                },
+                background: Some(iced::Background::Color(
+                    if connected { 
+                        iced::Color::from_rgba(0.1, 0.1, 0.1, 0.3) 
+                    } else { 
+                        iced::Color::from_rgba(0.05, 0.05, 0.05, 0.1) 
+                    }
+                )),
+                text_color: None,
+                shadow: iced::Shadow {
+                    color: iced::Color::from_rgba(0.0, 0.0, 0.0, 0.3),
+                    offset: iced::Vector::new(2.0, 2.0),
+                    blur_radius: 4.0,
+                },
+            }
+        })
         .into()
 }
 

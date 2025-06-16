@@ -14,9 +14,11 @@
 pub mod device_control;
 pub mod firing;
 pub mod information;
+pub mod power;
 pub mod result_types;
 
 // Re-export commonly used types
 pub use device_control::DeviceControlOperations;
 pub use firing::StageOperations;
+pub use power::UnifiedPowerOperations;
 pub use result_types::DeviceOperationData;

@@ -86,6 +86,26 @@ pub fn get_stage_arm_current(protocol: &mut ProtocolHandler, stage_num: u8) -> R
     Ok(arm_current)
 }
 
+/// Get FIRE current for a specific stage
+///
+/// Protocol commands: 0x78 (Stage 1), 0x80 (Stage 2), 0x88 (Stage 3), 0x90 (Stage 4), 0x98 (Stage 5)
+pub fn get_stage_fire_current(protocol: &mut ProtocolHandler, stage_num: u8) -> Result<u16> {
+    if !(1..=5).contains(&stage_num) {
+        return Err(LumidoxError::InvalidInput(
+            format!("Invalid stage number: {}. Must be 1-5", stage_num)
+        ));
+    }
+
+    // Get the appropriate command for this stage (stages are 1-indexed, array is 0-indexed)
+    let stage_idx = (stage_num - 1) as usize;
+    let fire_command = crate::communication::protocol::commands::STAGE_CURRENTS[stage_idx];
+
+    // Send command and get FIRE current value
+    let fire_current = protocol.send_command(fire_command, 0)? as u16;
+
+    Ok(fire_current)
+}
+
 /// Get voltage limit for a specific stage
 ///
 /// Protocol commands: 0x79 (Stage 1), 0x81 (Stage 2), 0x89 (Stage 3), 0x91 (Stage 4), 0x99 (Stage 5)

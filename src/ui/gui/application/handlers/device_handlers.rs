@@ -388,4 +388,75 @@ impl DeviceHandlers {
             Message::DeviceOperationCompleted,
         )
     }
+
+    /// Handle power values refresh operation
+    ///
+    /// Creates an async Command to refresh power values for all stages.
+    /// This provides real-time power monitoring for the GUI display.
+    ///
+    /// # Arguments
+    /// * `device` - Shared device controller
+    ///
+    /// # Returns
+    /// * `Command<Message>` - Async command for power values refresh
+    ///
+    /// # Example
+    /// ```
+    /// let cmd = DeviceHandlers::handle_refresh_power_values(device_arc);
+    /// ```
+    pub fn handle_refresh_power_values(device: Arc<Mutex<Option<LumidoxDevice>>>) -> Command<Message> {
+        Command::perform(
+            async move {
+                let mut device_guard = device.lock().await;
+
+                if let Some(ref mut dev) = device_guard.as_mut() {
+                    // Read power information for all stages
+                    let mut power_readings = Vec::new();
+                    let mut errors = Vec::new();
+
+                    for stage in 1..=5 {
+                        match dev.get_power_info(stage) {
+                            Ok(power_info) => {
+                                power_readings.push(format!(
+                                    "Stage {}: {} {} ({} {})",
+                                    stage,
+                                    power_info.total_power,
+                                    power_info.total_units,
+                                    power_info.per_power,
+                                    power_info.per_units
+                                ));
+                            }
+                            Err(e) => {
+                                errors.push(format!("Stage {}: {}", stage, e));
+                            }
+                        }
+                    }
+
+                    if errors.is_empty() {
+                        DeviceOperationResult::GeneralResult {
+                            success: true,
+                            operation: "Refresh Power Values".to_string(),
+                            message: Some(format!("Power values updated: {}", power_readings.join(", "))),
+                            error: None,
+                        }
+                    } else {
+                        DeviceOperationResult::GeneralResult {
+                            success: false,
+                            operation: "Refresh Power Values".to_string(),
+                            message: None,
+                            error: Some(format!("Failed to read some stages: {}", errors.join(", "))),
+                        }
+                    }
+                } else {
+                    DeviceOperationResult::GeneralResult {
+                        success: false,
+                        operation: "Refresh Power Values".to_string(),
+                        message: None,
+                        error: Some("Device not connected".to_string()),
+                    }
+                }
+            },
+            Message::DeviceOperationCompleted,
+        )
+    }
 }

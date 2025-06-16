@@ -14,21 +14,39 @@ pub fn get_power_info(protocol: &mut ProtocolHandler, stage_num: u8) -> Result<P
             format!("Invalid stage number: {}", stage_num)
         ));
     }
-    
-    let stage_idx = (stage_num - 1) as usize;
+      let stage_idx = (stage_num - 1) as usize;
     let base_cmd = match stage_idx {
         0 => 0x7b, // Stage 1: 0x7b-0x7e
         1 => 0x83, // Stage 2: 0x83-0x86
-        2 => 0x8b, // Stage 3: 0x8b-0x8e
-        3 => 0x93, // Stage 4: 0x93-0x96
+        2 => 0x8b, // Stage 3: 0x8b, 0x8c, 0x8d, 0x8e (Power Total uses 0x8b)
+        3 => 0x93, // Stage 4: 0x93, 0x94, 0x95, 0x96 (Power Total uses 0x93)
         4 => 0x9b, // Stage 5: 0x9b-0x9e
         _ => unreachable!(),
     };
     
-    let total_power_cmd = format!("{:02x}", base_cmd);
-    let per_power_cmd = format!("{:02x}", base_cmd + 1);
-    let total_units_cmd = format!("{:02x}", base_cmd + 2);
-    let per_units_cmd = format!("{:02x}", base_cmd + 3);
+    let total_power_cmd = format!("{:02x}", base_cmd);    // Per power commands have irregular spacing for stages 3 and 4
+    let per_power_cmd = match stage_idx {
+        0 => format!("{:02x}", 0x7c), // Stage 1: 0x7c
+        1 => format!("{:02x}", 0x84), // Stage 2: 0x84
+        2 => format!("{:02x}", 0x8c), // Stage 3: 0x8c
+        3 => format!("{:02x}", 0x94), // Stage 4: 0x94
+        4 => format!("{:02x}", 0x9c), // Stage 5: 0x9c
+        _ => unreachable!(),
+    };    let total_units_cmd = match stage_idx {
+        0 => format!("{:02x}", 0x7d), // Stage 1: 0x7d
+        1 => format!("{:02x}", 0x85), // Stage 2: 0x85
+        2 => format!("{:02x}", 0x8d), // Stage 3: 0x8d
+        3 => format!("{:02x}", 0x95), // Stage 4: 0x95
+        4 => format!("{:02x}", 0x9d), // Stage 5: 0x9d
+        _ => unreachable!(),
+    };    let per_units_cmd = match stage_idx {
+        0 => format!("{:02x}", 0x7e), // Stage 1: 0x7e
+        1 => format!("{:02x}", 0x86), // Stage 2: 0x86
+        2 => format!("{:02x}", 0x8e), // Stage 3: 0x8e
+        3 => format!("{:02x}", 0x96), // Stage 4: 0x96
+        4 => format!("{:02x}", 0x9e), // Stage 5: 0x9e
+        _ => unreachable!(),
+    };
     
     let total_power = protocol.send_command(total_power_cmd.as_bytes(), 0)? as f32 / 10.0;
     let per_power = protocol.send_command(per_power_cmd.as_bytes(), 0)? as f32 / 10.0;

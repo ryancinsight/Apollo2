@@ -112,8 +112,7 @@ impl InputParser {
     pub fn parse_yes_no(input: &str) -> Result<bool> {
         InputValidator::validate_yes_no(input)
     }
-    
-    /// Determine menu choice category
+      /// Determine menu choice category
     /// 
     /// Determines the category of a menu choice number for routing purposes.
     /// 
@@ -131,13 +130,12 @@ impl InputParser {
     pub fn determine_choice_category(choice_num: u8) -> MenuCategory {
         match choice_num {
             1..=6 => MenuCategory::Stage,
-            7..=9 => MenuCategory::Device,
-            10..=16 => MenuCategory::Information,
+            7..=8 => MenuCategory::Device,
+            9..=16 => MenuCategory::Information,
             _ => MenuCategory::Invalid,
         }
     }
-    
-    /// Determine menu choice action
+      /// Determine menu choice action
     /// 
     /// Determines the specific action for a menu choice number.
     /// 
@@ -162,14 +160,14 @@ impl InputParser {
             6 => MenuAction::FireCustomCurrent,
             7 => MenuAction::ArmDevice,
             8 => MenuAction::TurnOffDevice,
-            9 => MenuAction::ShutdownAndQuit,
-            10 => MenuAction::ShowDeviceStatus,
-            11 => MenuAction::ReadRemoteMode,
-            12 => MenuAction::ReadCurrentSettings,
-            13 => MenuAction::ShowStageParameters,
-            14 => MenuAction::ReadStageArmCurrent,
-            15 => MenuAction::ReadStageVoltageParameters,
-            16 => MenuAction::SetArmCurrent,
+            9 => MenuAction::ShowDeviceStatus,
+            10 => MenuAction::ReadRemoteMode,
+            11 => MenuAction::ReadCurrentSettings,
+            12 => MenuAction::ShowStageParameters,
+            13 => MenuAction::ReadStageArmCurrent,
+            14 => MenuAction::ReadStageVoltageParameters,
+            15 => MenuAction::SetArmCurrent,
+            16 => MenuAction::ShutdownAndQuit,
             _ => MenuAction::Invalid,
         }
     }

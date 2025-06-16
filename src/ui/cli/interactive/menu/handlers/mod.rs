@@ -50,13 +50,12 @@ impl MenuActionHandlers {
         if let Some(result) = StageActionHandlers::handle_stage_choice(device, choice)? {
             return Ok(Some(result));
         }
-        
-        // Try device control actions (choices 7-9)
+          // Try device control actions (choices 7-8)
         if let Some(result) = DeviceActionHandlers::handle_device_choice(device, choice)? {
             return Ok(Some(result));
         }
         
-        // Try information actions (choices 10-16)
+        // Try information actions (choices 9-16)
         if let Some(result) = InfoActionHandlers::handle_info_choice(device, choice)? {
             return Ok(Some(result));
         }
@@ -88,13 +87,12 @@ impl MenuActionHandlers {
         if let Some(result) = StageActionHandlers::handle_stage_choice(device, choice)? {
             return Ok(Some(result));
         }
-        
-        // Try device control actions with status checking (choices 7-9)
+          // Try device control actions with status checking (choices 7-8)
         if let Some(result) = DeviceActionHandlers::handle_device_choice_with_status(device, choice)? {
             return Ok(Some(result));
         }
         
-        // Try information actions (choices 10-16)
+        // Try information actions (choices 9-16)
         if let Some(result) = InfoActionHandlers::handle_info_choice(device, choice)? {
             return Ok(Some(result));
         }

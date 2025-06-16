@@ -483,6 +483,24 @@ impl LumidoxDevice {
         device_operations::power::get_stage_arm_current(&mut self.protocol, stage_num)
     }
 
+    /// Get FIRE current for specific stage
+    /// 
+    /// Retrieves the FIRE current setting for the specified stage.
+    /// 
+    /// # Arguments
+    /// * `stage_num` - The stage number to query (1-5)
+    /// 
+    /// # Returns
+    /// * `Result<u16>` - Stage FIRE current in milliamps or query error
+    /// 
+    /// # Example
+    /// ```
+    /// let fire_current = device.get_stage_fire_current(3)?;
+    /// ```
+    pub fn get_stage_fire_current(&mut self, stage_num: u8) -> Result<u16> {
+        device_operations::power::get_stage_fire_current(&mut self.protocol, stage_num)
+    }
+
     /// Get voltage limit for specific stage
     /// 
     /// Retrieves the voltage limit setting for the specified stage.

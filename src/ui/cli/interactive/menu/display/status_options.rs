@@ -20,8 +20,8 @@ pub struct StatusOptionsDisplay;
 impl StatusOptionsDisplay {
     /// Display device control options
     /// 
-    /// Shows basic device control options including arm, turn off,
-    /// and quit program options.
+    /// Shows basic device control options including arm and turn off.
+    /// Quit option is moved to the end after all other options.
     /// 
     /// # Returns
     /// * `Result<()>` - Always succeeds for display operations
@@ -33,11 +33,9 @@ impl StatusOptionsDisplay {
     pub fn display_control_options() -> Result<()> {
         println!("7) Arm device (prepare for firing).");
         println!("8) Turn off device.");
-        println!("9) Quit program.");
         Ok(())
     }
-    
-    /// Display device status and information options
+      /// Display device status and information options
     /// 
     /// Shows options for reading device status, remote mode state,
     /// and current settings information.
@@ -51,13 +49,12 @@ impl StatusOptionsDisplay {
     /// ```
     pub fn display_status_options() -> Result<()> {
         println!("--- Device Status & Information ---");
-        println!("10) Show device status.");
-        println!("11) Read remote mode state.");
-        println!("12) Read ARM/FIRE current settings.");
+        println!("9) Show device status.");
+        println!("10) Read remote mode state.");
+        println!("11) Read ARM/FIRE current settings.");
         Ok(())
     }
-    
-    /// Display stage parameter information options
+      /// Display stage parameter information options
     /// 
     /// Shows options for reading detailed stage parameter information
     /// including complete parameters, ARM current, and voltage parameters.
@@ -71,13 +68,11 @@ impl StatusOptionsDisplay {
     /// ```
     pub fn display_parameter_options() -> Result<()> {
         println!("--- Stage Parameter Information ---");
-        println!("13) Show complete stage parameters.");
-        println!("14) Read stage ARM current.");
-        println!("15) Read stage voltage parameters.");
+        println!("12) Show complete stage parameters.");
+        println!("13) Read stage ARM current.");
+        println!("14) Read stage voltage parameters.");
         Ok(())
-    }
-    
-    /// Display current control options
+    }    /// Display current control options
     /// 
     /// Shows options for controlling device current settings
     /// including ARM current configuration.
@@ -91,11 +86,27 @@ impl StatusOptionsDisplay {
     /// ```
     pub fn display_current_control_options() -> Result<()> {
         println!("--- Current Control ---");
-        println!("16) Set ARM current.");
+        println!("15) Set ARM current.");
         Ok(())
     }
     
-    /// Display all status and information options
+    /// Display quit option
+    /// 
+    /// Shows the quit program option at the end of the menu.
+    /// 
+    /// # Returns
+    /// * `Result<()>` - Always succeeds for display operations
+    /// 
+    /// # Example
+    /// ```
+    /// StatusOptionsDisplay::display_quit_option()?;
+    /// ```
+    pub fn display_quit_option() -> Result<()> {
+        println!();
+        println!("16) Quit program.");
+        Ok(())
+    }
+      /// Display all status and information options
     /// 
     /// Combines all status, information, and control options into
     /// a complete non-stage options display section.
@@ -114,6 +125,7 @@ impl StatusOptionsDisplay {
         Self::display_status_options()?;
         Self::display_parameter_options()?;
         Self::display_current_control_options()?;
+        Self::display_quit_option()?;
         Ok(())
     }
     
@@ -138,14 +150,14 @@ impl StatusOptionsDisplay {
         match choice {
             "7" => Some("Arm device (prepare for firing)".to_string()),
             "8" => Some("Turn off device".to_string()),
-            "9" => Some("Quit program".to_string()),
-            "10" => Some("Show device status".to_string()),
-            "11" => Some("Read remote mode state".to_string()),
-            "12" => Some("Read ARM/FIRE current settings".to_string()),
-            "13" => Some("Show complete stage parameters".to_string()),
-            "14" => Some("Read stage ARM current".to_string()),
-            "15" => Some("Read stage voltage parameters".to_string()),
-            "16" => Some("Set ARM current".to_string()),
+            "9" => Some("Show device status".to_string()),
+            "10" => Some("Read remote mode state".to_string()),
+            "11" => Some("Read ARM/FIRE current settings".to_string()),
+            "12" => Some("Show complete stage parameters".to_string()),
+            "13" => Some("Read stage ARM current".to_string()),
+            "14" => Some("Read stage voltage parameters".to_string()),
+            "15" => Some("Set ARM current".to_string()),
+            "16" => Some("Quit program".to_string()),
             _ => None,
         }
     }

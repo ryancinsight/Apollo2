@@ -170,7 +170,7 @@ impl DeviceActionHandlers {
         match choice {
             "7" => Ok(Some(Self::handle_arm_device(device)?)),
             "8" => Ok(Some(Self::handle_turn_off_device(device)?)),
-            "9" => Ok(Some(Self::handle_shutdown_and_quit(device)?)),
+            "16" => Ok(Some(Self::handle_shutdown_and_quit(device)?)),
             _ => Ok(None)
         }
     }
@@ -359,7 +359,7 @@ impl DeviceActionHandlers {
                 Self::display_turn_off_confirmation()?;
                 Ok(Some(Self::handle_turn_off_device(device)?))
             }
-            "9" => {
+            "16" => {
                 Self::display_shutdown_confirmation()?;
                 Ok(Some(Self::handle_shutdown_and_quit(device)?))
             }

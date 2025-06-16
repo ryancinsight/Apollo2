@@ -34,14 +34,33 @@ impl StageOptionsDisplay {
     /// StageOptionsDisplay::display_stage_options(&device)?;
     /// ```
     pub fn display_stage_options(device: &mut LumidoxDevice) -> Result<()> {
-        // Display stage options with power info
+        // Display stage options with power info and current info
         for stage in 1..=5 {
-            if let Ok(power_info) = device.get_power_info(stage) {
-                println!("{}) Turn on stage {}: {} {}, {} {}", 
-                    stage, stage, power_info.total_power, power_info.total_units, 
-                    power_info.per_power, power_info.per_units);
-            } else {
-                println!("{}) Turn on stage {}", stage, stage);
+            // Try to get both power info and current info
+            let power_info_result = device.get_power_info(stage);
+            let fire_current_result = device.get_stage_fire_current(stage);
+            
+            match (power_info_result, fire_current_result) {
+                (Ok(power_info), Ok(fire_current)) => {
+                    // Display with both power and current info
+                    println!("{}) Turn on stage {}: {}mA, {} {}, {} {}", 
+                        stage, stage, fire_current, power_info.total_power, power_info.total_units, 
+                        power_info.per_power, power_info.per_units);
+                }
+                (Ok(power_info), Err(_)) => {
+                    // Display with power info only
+                    println!("{}) Turn on stage {}: {} {}, {} {}", 
+                        stage, stage, power_info.total_power, power_info.total_units, 
+                        power_info.per_power, power_info.per_units);
+                }
+                (Err(_), Ok(fire_current)) => {
+                    // Display with current info only
+                    println!("{}) Turn on stage {}: {}mA", stage, stage, fire_current);
+                }
+                (Err(_), Err(_)) => {
+                    // Display basic info only
+                    println!("{}) Turn on stage {}", stage, stage);
+                }
             }
         }
         
@@ -119,12 +138,31 @@ impl StageOptionsDisplay {
             ));
         }
         
-        if let Ok(power_info) = device.get_power_info(stage) {
-            Ok(format!("{}) Turn on stage {}: {} {}, {} {}", 
-                stage, stage, power_info.total_power, power_info.total_units, 
-                power_info.per_power, power_info.per_units))
-        } else {
-            Ok(format!("{}) Turn on stage {}", stage, stage))
+        // Try to get both power info and current info
+        let power_info_result = device.get_power_info(stage);
+        let fire_current_result = device.get_stage_fire_current(stage);
+        
+        match (power_info_result, fire_current_result) {
+            (Ok(power_info), Ok(fire_current)) => {
+                // Include both power and current info
+                Ok(format!("{}) Turn on stage {}: {}mA, {} {}, {} {}", 
+                    stage, stage, fire_current, power_info.total_power, power_info.total_units, 
+                    power_info.per_power, power_info.per_units))
+            }
+            (Ok(power_info), Err(_)) => {
+                // Include power info only
+                Ok(format!("{}) Turn on stage {}: {} {}, {} {}", 
+                    stage, stage, power_info.total_power, power_info.total_units, 
+                    power_info.per_power, power_info.per_units))
+            }
+            (Err(_), Ok(fire_current)) => {
+                // Include current info only
+                Ok(format!("{}) Turn on stage {}: {}mA", stage, stage, fire_current))
+            }
+            (Err(_), Err(_)) => {
+                // Basic info only
+                Ok(format!("{}) Turn on stage {}", stage, stage))
+            }
         }
     }
     
