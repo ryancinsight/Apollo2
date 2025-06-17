@@ -49,6 +49,21 @@ pub struct StageInfo {
     pub error: Option<String>,
 }
 
+/// Custom current information for GUI display
+#[derive(Debug, Clone, Default)]
+pub struct CustomCurrentInfo {
+    /// Custom current value in mA
+    pub current_ma: u16,
+    /// Estimated total power value
+    pub estimated_total_power: Option<f32>,
+    /// Estimated per-LED power value
+    pub estimated_per_power: Option<f32>,
+    /// Whether calculation is available
+    pub has_estimate: bool,
+    /// Error message if estimation failed
+    pub error: Option<String>,
+}
+
 /// Run the GUI application
 /// 
 /// Launches the Lumidox II Controller GUI application with the specified
@@ -428,14 +443,14 @@ pub struct AppState {
     connected: bool,
     connecting: bool,
     status_message: String,
-    error_message: Option<String>,
-    /// Device status
+    error_message: Option<String>,    /// Device status
     device_info: Option<String>,
     /// UI state
-    selected_stage: u8,
     custom_current: String,
     /// Stage information for each stage (1-5)
     stage_info: HashMap<u8, StageInfo>,
+    /// Custom current information
+    custom_current_info: CustomCurrentInfo,
     /// Whether we're currently refreshing stage information
     refreshing_stages: bool,
 }
@@ -457,11 +472,19 @@ impl Default for AppState {
             connected: false,
             connecting: false,
             status_message: "Ready to connect".to_string(),
-            error_message: None,
-            device_info: None,
-            selected_stage: 1,
+            error_message: None,            device_info: None,
             custom_current: "500".to_string(),
-            stage_info,
+            stage_info,            custom_current_info: {
+                // Initialize with default current value using factory calibration
+                let power_info = IrradianceCalculator::estimate_power_from_current_with_calibration(500, None);
+                CustomCurrentInfo {
+                    current_ma: 500,
+                    estimated_total_power: Some(power_info.total_power),
+                    estimated_per_power: Some(power_info.per_power),
+                    has_estimate: true,
+                    error: None,
+                }
+            },
             refreshing_stages: false,
         }
     }
@@ -479,9 +502,9 @@ impl std::fmt::Debug for AppState {
             .field("status_message", &self.status_message)
             .field("error_message", &self.error_message)
             .field("device_info", &self.device_info)
-            .field("selected_stage", &self.selected_stage)
             .field("custom_current", &self.custom_current)
             .field("stage_info", &self.stage_info)
+            .field("custom_current_info", &self.custom_current_info)
             .field("refreshing_stages", &self.refreshing_stages)
             .field("device", &"Arc<Mutex<Option<LumidoxDevice>>>")
             .finish()
@@ -636,10 +659,38 @@ fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 state.error_message = Some("Device not connected".to_string());
                 Task::none()
             }
-        }
-
-        Message::CurrentChanged(value) => {
-            state.custom_current = value;
+        }        Message::CurrentChanged(value) => {
+            state.custom_current = value.clone();
+            
+            // Update custom current info with power estimation using actual device data when available
+            match value.trim().parse::<u16>() {
+                Ok(current_ma) if current_ma > 0 => {
+                    // Use actual stage calibration data for better accuracy
+                    let power_info = IrradianceCalculator::estimate_power_from_current_with_device_data(
+                        current_ma, 
+                        Some(&state.stage_info)
+                    );
+                    
+                    state.custom_current_info = CustomCurrentInfo {
+                        current_ma,
+                        estimated_total_power: Some(power_info.total_power),
+                        estimated_per_power: Some(power_info.per_power),
+                        has_estimate: true,
+                        error: None,
+                    };
+                }
+                _ => {
+                    // Invalid current value
+                    state.custom_current_info = CustomCurrentInfo {
+                        current_ma: 0,
+                        estimated_total_power: None,
+                        estimated_per_power: None,
+                        has_estimate: false,
+                        error: Some("Invalid current value".to_string()),
+                    };
+                }
+            }
+            
             Task::none()
         }
 
@@ -946,16 +997,31 @@ fn view(state: &AppState) -> Element<Message> {
     // Arrange stage boxes in a row
     let stages_row = row(stage_boxes)
         .spacing(20)
-        .align_y(Alignment::Start);
-
-    // Current control
-    let current_control = row![
-        text("Custom Current (mA):"),
+        .align_y(Alignment::Start);    // Custom current control section
+    let current_control_input = row![
+        text("Custom Current (mA):").width(Length::Fixed(140.0)),
         text_input("500", &state.custom_current)
             .on_input(Message::CurrentChanged)
             .width(Length::Fixed(100.0)),
         button("Fire with Current")
             .on_press_maybe(if state.connected { Some(Message::FireWithCurrent) } else { None })
+    ]
+    .spacing(10)
+    .align_y(Alignment::Center);
+    
+    // Custom current info box
+    let custom_current_info_box = create_custom_current_info_box(&state.custom_current_info);
+    
+    // Combine input and info box in a more organized layout
+    let current_control = row![
+        column![
+            current_control_input,
+            Space::with_height(Length::Fixed(10.0))
+        ]
+        .spacing(5)
+        .align_x(Alignment::Start),
+        Space::with_width(Length::Fixed(20.0)),
+        custom_current_info_box
     ]
     .spacing(10)
     .align_y(Alignment::Center);
@@ -1047,7 +1113,7 @@ fn create_stage_box(stage: u8, stage_info: Option<&StageInfo>, connected: bool) 
             // Calculate and show irradiance if power data is available
             if let (Some(total_power), Some(total_units), Some(per_power), Some(per_units)) = 
                 (&info.total_power, &info.total_units, &info.per_power, &info.per_units) {
-                // Create PowerInfo for irradiance calculation
+                // Create PowerInfo for irradiadiance calculation
                 let power_info = PowerInfo {
                     total_power: *total_power,
                     total_units: total_units.clone(),
@@ -1095,7 +1161,7 @@ fn create_stage_box(stage: u8, stage_info: Option<&StageInfo>, connected: bool) 
             // Calculate and show irradiance
             if let (Some(total_power), Some(total_units), Some(per_power), Some(per_units)) = 
                 (&info.total_power, &info.total_units, &info.per_power, &info.per_units) {
-                // Create PowerInfo for irradiance calculation
+                // Create PowerInfo for irradiadiance calculation
                 let power_info = PowerInfo {
                     total_power: *total_power,
                     total_units: total_units.clone(),
@@ -1158,6 +1224,113 @@ fn create_stage_box(stage: u8, stage_info: Option<&StageInfo>, connected: bool) 
                     } else { 
                         iced::Color::from_rgba(0.05, 0.05, 0.05, 0.1) 
                     }
+                )),
+                text_color: None,
+                shadow: iced::Shadow {
+                    color: iced::Color::from_rgba(0.0, 0.0, 0.0, 0.3),
+                    offset: iced::Vector::new(2.0, 2.0),
+                    blur_radius: 4.0,
+                },
+            }
+        })
+        .into()
+}
+
+/// Create a custom current information box
+fn create_custom_current_info_box(custom_current_info: &CustomCurrentInfo) -> Element<Message> {
+    use iced::widget::{column, container, text, Space};
+    use iced::{Alignment, Length, Border};
+    
+    let content = if custom_current_info.has_estimate {
+        let mut info_column = column![];
+        
+        // Show current with mA
+        info_column = info_column.push(
+            text(format!("{}mA", custom_current_info.current_ma))
+                .size(12)
+                .color(iced::Color::from_rgb(0.9, 0.9, 0.9))
+        );
+        
+        // Show estimated total power
+        if let Some(total_power) = custom_current_info.estimated_total_power {
+            info_column = info_column.push(
+                text(format!("{:.1} mW TOTAL (EST)", total_power))
+                    .size(10)
+                    .color(iced::Color::from_rgb(0.8, 0.8, 0.6))
+            );
+        }
+        
+        // Show estimated per-LED power
+        if let Some(per_power) = custom_current_info.estimated_per_power {
+            info_column = info_column.push(
+                text(format!("{:.2} mW PER LED (EST)", per_power))
+                    .size(10)
+                    .color(iced::Color::from_rgb(0.8, 0.8, 0.6))
+            );
+        }
+        
+        // Calculate and show irradiance
+        if custom_current_info.current_ma > 0 {
+            match IrradianceCalculator::calculate_irradiance_from_current(custom_current_info.current_ma) {
+                Ok(irradiance_data) => {
+                    info_column = info_column.push(
+                        text(format!("{:.3} mW/cm² (EST)", irradiance_data.total_irradiance_mw_cm2))
+                            .size(9)
+                            .color(iced::Color::from_rgb(0.2, 0.8, 0.4))
+                    );
+                }
+                Err(_) => {
+                    info_column = info_column.push(
+                        text("Irradiance: N/A")
+                            .size(9)
+                            .color(iced::Color::from_rgb(0.6, 0.6, 0.6))
+                    );
+                }
+            }
+        }
+        
+        info_column.spacing(2).align_x(Alignment::Center)
+    } else if let Some(ref error) = custom_current_info.error {
+        column![
+            text(format!("Error: {}", error))
+                .size(10)
+                .color(iced::Color::from_rgb(0.8, 0.4, 0.4))
+        ]
+        .spacing(2)
+        .align_x(Alignment::Center)
+    } else {
+        column![
+            text("Enter current")
+                .size(10)
+                .color(iced::Color::from_rgb(0.6, 0.6, 0.6))
+        ]
+        .spacing(2)
+        .align_x(Alignment::Center)
+    };
+    
+    let custom_content = column![
+        text("Custom Current")
+            .size(14)
+            .color(iced::Color::from_rgb(0.9, 0.9, 0.9)),
+        Space::with_height(Length::Fixed(5.0)),
+        content
+    ]
+    .spacing(5)
+    .align_x(Alignment::Center)
+    .width(Length::Fixed(140.0));
+    
+    // Container with border to create the "box" effect matching stage boxes
+    container(custom_content)
+        .padding(15)
+        .style(move |_theme: &iced::Theme| {
+            container::Style {
+                border: Border {
+                    color: iced::Color::from_rgb(0.4, 0.4, 0.4),
+                    width: 1.0,
+                    radius: 8.0.into(),
+                },
+                background: Some(iced::Background::Color(
+                    iced::Color::from_rgba(0.1, 0.1, 0.1, 0.3)
                 )),
                 text_color: None,
                 shadow: iced::Shadow {

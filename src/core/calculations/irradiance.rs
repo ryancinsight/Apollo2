@@ -61,12 +61,11 @@ impl IrradianceCalculator {
     /// # Example
     /// ```
     /// let geometry = IrradianceCalculator::get_plate_geometry();
-    /// println!("Plate area: {:.2} cm²", geometry.total_area_cm2);
-    /// ```
+    /// println!("Plate area: {:.2} cm²", geometry.total_area_cm2);    /// ```
     pub fn get_plate_geometry() -> PlateGeometry {
-        // Based on the schematic dimensions (from Python implementation)
-        let plate_length_mm = 127.75;
-        let plate_width_mm = 105.5;
+        // Based on the actual schematic dimensions (LUMIDOX II PROPRIETARY schematic)
+        let plate_length_mm = 127.75;  // From schematic
+        let plate_width_mm = 105.5;    // From schematic
         
         // Convert to cm
         let plate_length_cm = plate_length_mm / 10.0;
@@ -75,12 +74,12 @@ impl IrradianceCalculator {
         // Calculate total area
         let total_area_cm2 = plate_length_cm * plate_width_cm;
         
-        // From schematic: appears to be 96-well plate (8x12 grid)
+        // From schematic: 96-well plate (8x12 grid) - confirmed from schematic layout
         let well_count = 96;
         
-        // Estimate well spacing and area (typical 96-well plate)
-        let well_spacing_mm = 9.0; // Typical 96-well spacing
-        let well_diameter_mm = 6.5; // Typical well diameter
+        // Actual values from schematic (not estimates)
+        let well_spacing_mm = 9.0; // Standard 96-well spacing, confirmed by schematic grid
+        let well_diameter_mm = 5.0; // From schematic: "∅5.0 (96 PLACES)"
         
         let well_area_cm2 = std::f32::consts::PI * (well_diameter_mm as f32 / 20.0_f32).powi(2); // Convert to cm² and calculate circle area
         
@@ -161,8 +160,7 @@ impl IrradianceCalculator {
     /// 
     /// # Returns
     /// * `String` - Formatted irradiance string for menu display
-    /// 
-    /// # Example
+    ///    /// # Example
     /// ```
     /// let display_text = IrradianceCalculator::format_irradiance_for_menu(&irradiance_data);
     /// println!("Menu text: {}", display_text);
@@ -191,5 +189,226 @@ impl IrradianceCalculator {
             Ok(irradiance_data) => Self::format_irradiance_for_menu(&irradiance_data),
             Err(_) => ", -- mW/cm² total irradiance".to_string(),
         }
+    }
+
+    /// Estimate power for custom current based on typical stage power/current relationships
+    /// 
+    /// This creates an estimated PowerInfo structure based on a custom current value
+    /// using the typical power/current ratios observed in factory-calibrated stages.
+    /// 
+    /// # Arguments
+    /// * `current_ma` - Custom current value in milliamps
+    /// 
+    /// # Returns
+    /// * `PowerInfo` - Estimated power information
+    /// 
+    /// # Example
+    /// ```
+    /// let power_estimate = IrradianceCalculator::estimate_power_from_current(2000);
+    /// ```    /// Estimate power for custom current based on actual stage calibration data
+    /// 
+    /// This method uses the actual calibration data from stages 1-5 to create
+    /// an accurate power estimation through interpolation. If stage data is not
+    /// available, it falls back to typical factory values.
+    /// 
+    /// # Arguments
+    /// * `current_ma` - Custom current value in milliamps
+    /// * `stage_calibration_data` - Optional calibration data from connected device stages
+    /// 
+    /// # Returns
+    /// * `PowerInfo` - Estimated power information based on interpolation
+    /// 
+    /// # Example
+    /// ```
+    /// let power_estimate = IrradianceCalculator::estimate_power_from_current_with_calibration(1750, None);
+    /// ```
+    pub fn estimate_power_from_current_with_calibration(
+        current_ma: u16, 
+        stage_calibration_data: Option<&[(u16, f32, f32)]>  // (current_ma, total_power_mw, per_power_mw)
+    ) -> PowerInfo {
+        let calibration_points = if let Some(data) = stage_calibration_data {
+            // Use actual device calibration data
+            let mut points = data.to_vec();
+            points.sort_by_key(|&(current, _, _)| current);
+            points        } else {            // Fall back to actual factory calibration values from device specification
+            // Based on actual GUI stage data: current (mA) -> power (W) -> power (mW)
+            vec![
+                (60, 500.0, 5.21),     // Stage 1: 60mA -> 0.5W total (500mW), 5.21mW per WELL (500/96)
+                (110, 1000.0, 10.42),  // Stage 2: 110mA -> 1.0W total (1000mW), 10.42mW per WELL (1000/96)
+                (230, 2400.0, 25.0),   // Stage 3: 230mA -> 2.4W total (2400mW), 25.0mW per WELL (2400/96)
+                (425, 4800.0, 50.0),   // Stage 4: 425mA -> 4.8W total (4800mW), 50.0mW per WELL (4800/96)
+                (810, 9600.0, 100.0),  // Stage 5: 810mA -> 9.6W total (9600mW), 100.0mW per WELL (9600/96)
+            ]
+        };
+        
+        let current_f32 = current_ma as f32;
+        
+        // Handle edge cases
+        if calibration_points.is_empty() {
+            // If no calibration data, use conservative linear estimation
+            let efficiency = 0.2; // Conservative 0.2 mW per mA
+            let total_power = current_f32 * efficiency;
+            let per_power = total_power / 96.0;
+              return PowerInfo {
+                total_power,
+                total_units: "mW TOTAL RADIANT POWER (ESTIMATED)".to_string(),
+                per_power,
+                per_units: "mW PER WELL (ESTIMATED)".to_string(),
+            };
+        }
+        
+        // Find interpolation bounds
+        let (estimated_total_power, estimated_per_power) = if current_f32 <= calibration_points[0].0 as f32 {
+            // Below lowest calibration point - extrapolate downward
+            let (low_current, low_total, low_per) = calibration_points[0];
+            let ratio = current_f32 / low_current as f32;
+            (low_total * ratio, low_per * ratio)
+        } else if current_f32 >= calibration_points.last().unwrap().0 as f32 {
+            // Above highest calibration point - extrapolate upward
+            let (high_current, high_total, high_per) = *calibration_points.last().unwrap();
+            let ratio = current_f32 / high_current as f32;
+            (high_total * ratio, high_per * ratio)
+        } else {
+            // Interpolate between two calibration points
+            let mut lower_idx = 0;
+            for (i, &(cal_current, _, _)) in calibration_points.iter().enumerate() {
+                if current_f32 > cal_current as f32 {
+                    lower_idx = i;
+                } else {
+                    break;
+                }
+            }
+            
+            let upper_idx = (lower_idx + 1).min(calibration_points.len() - 1);
+            let (low_current, low_total, low_per) = calibration_points[lower_idx];
+            let (high_current, high_total, high_per) = calibration_points[upper_idx];
+            
+            if low_current == high_current {
+                // Same point, no interpolation needed
+                (low_total, low_per)
+            } else {
+                // Linear interpolation
+                let current_range = high_current as f32 - low_current as f32;
+                let current_offset = current_f32 - low_current as f32;
+                let interpolation_factor = current_offset / current_range;
+                
+                let interpolated_total = low_total + (high_total - low_total) * interpolation_factor;
+                let interpolated_per = low_per + (high_per - low_per) * interpolation_factor;
+                
+                (interpolated_total, interpolated_per)
+            }
+        };
+          PowerInfo {
+            total_power: estimated_total_power,
+            total_units: "mW TOTAL RADIANT POWER (ESTIMATED)".to_string(),
+            per_power: estimated_per_power,
+            per_units: "mW PER WELL (ESTIMATED)".to_string(),
+        }
+    }
+
+    /// Estimate power for custom current based on typical stage power/current relationships
+    /// 
+    /// This creates an estimated PowerInfo structure based on a custom current value
+    /// using interpolation of factory-calibrated stage data for improved accuracy.
+    /// 
+    /// # Arguments
+    /// * `current_ma` - Custom current value in milliamps
+    /// 
+    /// # Returns
+    /// * `PowerInfo` - Estimated power information
+    /// 
+    /// # Example
+    /// ```
+    /// let power_estimate = IrradianceCalculator::estimate_power_from_current(2000);
+    /// ```
+    pub fn estimate_power_from_current(current_ma: u16) -> PowerInfo {
+        // Use the new calibration-based method with default factory values
+        Self::estimate_power_from_current_with_calibration(current_ma, None)
+    }
+
+    /// Calculate irradiance for custom current
+    /// 
+    /// Convenience method that combines current-to-power estimation and irradiance calculation
+    /// for custom current values.
+    /// 
+    /// # Arguments
+    /// * `current_ma` - Custom current value in milliamps
+    /// 
+    /// # Returns
+    /// * `Result<IrradianceData>` - Calculated irradiance data or error
+    /// 
+    /// # Example
+    /// ```
+    /// let irradiance = IrradianceCalculator::calculate_irradiance_from_current(2000)?;
+    /// ```
+    pub fn calculate_irradiance_from_current(current_ma: u16) -> Result<IrradianceData> {
+        let power_info = Self::estimate_power_from_current(current_ma);        Self::calculate_irradiance(&power_info)
+    }
+
+    /// Extract calibration data from stage information
+    /// 
+    /// Creates calibration data points from actual device stage measurements
+    /// for use in power interpolation calculations.
+    /// 
+    /// # Arguments
+    /// * `stage_info_map` - Map of stage number to stage information
+    /// 
+    /// # Returns
+    /// * `Vec<(u16, f32, f32)>` - Vector of (current_ma, total_power_mw, per_power_mw) tuples
+    /// 
+    /// # Example
+    /// ```
+    /// let calibration_data = IrradianceCalculator::extract_calibration_data_from_stages(&stage_map);
+    /// ```
+    pub fn extract_calibration_data_from_stages(
+        stage_info_map: &std::collections::HashMap<u8, crate::ui::gui::StageInfo>
+    ) -> Vec<(u16, f32, f32)> {
+        let mut calibration_points = Vec::new();
+        
+        for (_stage_num, stage_info) in stage_info_map {
+            // Only include stages with complete data
+            if let (Some(current), Some(total_power), Some(per_power)) = (
+                stage_info.fire_current_ma,
+                stage_info.total_power,
+                stage_info.per_power,
+            ) {
+                calibration_points.push((current, total_power, per_power));
+            }
+        }
+        
+        // Sort by current for proper interpolation
+        calibration_points.sort_by_key(|&(current, _, _)| current);
+        calibration_points
+    }
+    
+    /// Estimate power using actual device calibration data when available
+    /// 
+    /// This method attempts to use actual stage calibration data from the device
+    /// when available, falling back to factory estimates if not.
+    /// 
+    /// # Arguments
+    /// * `current_ma` - Custom current value in milliamps
+    /// * `stage_info_map` - Optional map of actual stage information from device
+    /// 
+    /// # Returns
+    /// * `PowerInfo` - Estimated power information
+    /// 
+    /// # Example
+    /// ```
+    /// let power_estimate = IrradianceCalculator::estimate_power_from_current_with_device_data(1750, Some(&stage_map));
+    /// ```
+    pub fn estimate_power_from_current_with_device_data(
+        current_ma: u16,
+        stage_info_map: Option<&std::collections::HashMap<u8, crate::ui::gui::StageInfo>>
+    ) -> PowerInfo {
+        if let Some(stage_map) = stage_info_map {
+            let calibration_data = Self::extract_calibration_data_from_stages(stage_map);
+            if !calibration_data.is_empty() {
+                return Self::estimate_power_from_current_with_calibration(current_ma, Some(&calibration_data));
+            }
+        }
+        
+        // Fall back to factory estimates
+        Self::estimate_power_from_current_with_calibration(current_ma, None)
     }
 }
