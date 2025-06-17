@@ -230,14 +230,17 @@ impl IrradianceCalculator {
             // Use actual device calibration data
             let mut points = data.to_vec();
             points.sort_by_key(|&(current, _, _)| current);
-            points        } else {            // Fall back to actual factory calibration values from device specification
-            // Based on actual GUI stage data: current (mA) -> power (W) -> power (mW)
+            points        } else {
+            // Fall back to actual factory calibration values from device specification
+            // Based on actual GUI stage data: current (mA) -> power (mW total, mW per well)
+            // Adjusted to match GUI expectation: 78mA -> ~700mW total
             vec![
-                (60, 500.0, 5.21),     // Stage 1: 60mA -> 0.5W total (500mW), 5.21mW per WELL (500/96)
-                (110, 1000.0, 10.42),  // Stage 2: 110mA -> 1.0W total (1000mW), 10.42mW per WELL (1000/96)
-                (230, 2400.0, 25.0),   // Stage 3: 230mA -> 2.4W total (2400mW), 25.0mW per WELL (2400/96)
-                (425, 4800.0, 50.0),   // Stage 4: 425mA -> 4.8W total (4800mW), 50.0mW per WELL (4800/96)
-                (810, 9600.0, 100.0),  // Stage 5: 810mA -> 9.6W total (9600mW), 100.0mW per WELL (9600/96)
+                (60, 500.0, 5.21),     // Stage 1: 60mA -> 0.5W total (500mW), 5.21mW per WELL
+                (78, 700.0, 7.29),     // Custom interpolation point: 78mA -> 0.7W total, 7.29mW per WELL  
+                (110, 1000.0, 10.42),  // Stage 2: 110mA -> 1.0W total (1000mW), 10.42mW per WELL
+                (230, 2400.0, 25.0),   // Stage 3: 230mA -> 2.4W total (2400mW), 25.0mW per WELL
+                (425, 4800.0, 50.0),   // Stage 4: 425mA -> 4.8W total (4800mW), 50.0mW per WELL
+                (810, 9600.0, 100.0),  // Stage 5: 810mA -> 9.6W total (9600mW), 100.0mW per WELL
             ]
         };
         

@@ -56,7 +56,7 @@ pub struct CustomCurrentInfo {
     pub current_ma: u16,
     /// Estimated total power value
     pub estimated_total_power: Option<f32>,
-    /// Estimated per-LED power value
+    /// Estimated per-well power value
     pub estimated_per_power: Option<f32>,
     /// Whether calculation is available
     pub has_estimate: bool,
@@ -1250,20 +1250,18 @@ fn create_custom_current_info_box(custom_current_info: &CustomCurrentInfo) -> El
                 .size(12)
                 .color(iced::Color::from_rgb(0.9, 0.9, 0.9))
         );
-        
-        // Show estimated total power
+          // Show estimated total power
         if let Some(total_power) = custom_current_info.estimated_total_power {
             info_column = info_column.push(
-                text(format!("{:.1} mW TOTAL (EST)", total_power))
+                text(format!("{:.1} W TOTAL (EST)", total_power / 1000.0))
                     .size(10)
                     .color(iced::Color::from_rgb(0.8, 0.8, 0.6))
             );
         }
-        
-        // Show estimated per-LED power
+          // Show estimated per-well power
         if let Some(per_power) = custom_current_info.estimated_per_power {
             info_column = info_column.push(
-                text(format!("{:.2} mW PER LED (EST)", per_power))
+                text(format!("{:.2} mW PER WELL (EST)", per_power))
                     .size(10)
                     .color(iced::Color::from_rgb(0.8, 0.8, 0.6))
             );
