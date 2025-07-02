@@ -660,9 +660,7 @@ fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 Task::none()
             }
         }        Message::CurrentChanged(value) => {
-            state.custom_current = value.clone();
-            
-            // Update custom current info with power estimation using actual device data when available
+            state.custom_current = value.clone();            // Update custom current info with power estimation using actual device data when available
             match value.trim().parse::<u16>() {
                 Ok(current_ma) if current_ma > 0 => {
                     // Use actual stage calibration data for better accuracy
@@ -1120,13 +1118,19 @@ fn create_stage_box(stage: u8, stage_info: Option<&StageInfo>, connected: bool) 
                     per_power: *per_power,
                     per_units: per_units.clone(),
                 };
-                
-                match IrradianceCalculator::calculate_irradiance(&power_info) {
+                  match IrradianceCalculator::calculate_irradiance(&power_info) {
                     Ok(irradiance_data) => {
+                        // Surface irradiance
                         info_column = info_column.push(
-                            text(format!("{:.3} mW/cm²", irradiance_data.total_irradiance_mw_cm2))
+                            text(format!("{:.3} mW/cm² (surface)", irradiance_data.total_irradiance_mw_cm2))
                                 .size(9)
                                 .color(iced::Color::from_rgb(0.2, 0.8, 0.4))
+                        );
+                        // Well-bottom irradiance (44mm depth)
+                        info_column = info_column.push(
+                            text(format!("{:.3} mW/cm² (wells)", irradiance_data.total_irradiance_well_bottom_mw_cm2))
+                                .size(9)
+                                .color(iced::Color::from_rgb(0.8, 0.6, 0.2))
                         );
                     }
                     Err(_) => {
@@ -1156,9 +1160,7 @@ fn create_stage_box(stage: u8, stage_info: Option<&StageInfo>, connected: bool) 
                 info_column = info_column.push(text(format!("{:.1} {}", per_power, per_units)).size(10));
             } else {
                 info_column = info_column.push(text("Per-LED: N/A").size(10));
-            }
-
-            // Calculate and show irradiance
+            }            // Calculate and show irradiance
             if let (Some(total_power), Some(total_units), Some(per_power), Some(per_units)) = 
                 (&info.total_power, &info.total_units, &info.per_power, &info.per_units) {
                 // Create PowerInfo for irradiadiance calculation
@@ -1171,10 +1173,17 @@ fn create_stage_box(stage: u8, stage_info: Option<&StageInfo>, connected: bool) 
                 
                 match IrradianceCalculator::calculate_irradiance(&power_info) {
                     Ok(irradiance_data) => {
+                        // Surface irradiance
                         info_column = info_column.push(
-                            text(format!("{:.3} mW/cm²", irradiance_data.total_irradiance_mw_cm2))
+                            text(format!("{:.3} mW/cm² (surface)", irradiance_data.total_irradiance_mw_cm2))
                                 .size(9)
                                 .color(iced::Color::from_rgb(0.2, 0.8, 0.4))
+                        );
+                        // Well-bottom irradiance (44mm depth)
+                        info_column = info_column.push(
+                            text(format!("{:.3} mW/cm² (wells)", irradiance_data.total_irradiance_well_bottom_mw_cm2))
+                                .size(9)
+                                .color(iced::Color::from_rgb(0.8, 0.6, 0.2))
                         );
                     }
                     Err(_) => {
@@ -1249,8 +1258,7 @@ fn create_custom_current_info_box(custom_current_info: &CustomCurrentInfo) -> El
             text(format!("{}mA", custom_current_info.current_ma))
                 .size(12)
                 .color(iced::Color::from_rgb(0.9, 0.9, 0.9))
-        );
-          // Show estimated total power
+        );        // Show estimated total power
         if let Some(total_power) = custom_current_info.estimated_total_power {
             info_column = info_column.push(
                 text(format!("{:.1} W TOTAL (EST)", total_power / 1000.0))
@@ -1266,15 +1274,21 @@ fn create_custom_current_info_box(custom_current_info: &CustomCurrentInfo) -> El
                     .color(iced::Color::from_rgb(0.8, 0.8, 0.6))
             );
         }
-        
-        // Calculate and show irradiance
+          // Calculate and show irradiance
         if custom_current_info.current_ma > 0 {
             match IrradianceCalculator::calculate_irradiance_from_current(custom_current_info.current_ma) {
                 Ok(irradiance_data) => {
+                    // Surface irradiance
                     info_column = info_column.push(
-                        text(format!("{:.3} mW/cm² (EST)", irradiance_data.total_irradiance_mw_cm2))
+                        text(format!("{:.3} mW/cm² (surface EST)", irradiance_data.total_irradiance_mw_cm2))
                             .size(9)
                             .color(iced::Color::from_rgb(0.2, 0.8, 0.4))
+                    );
+                    // Well-bottom irradiance
+                    info_column = info_column.push(
+                        text(format!("{:.3} mW/cm² (wells EST)", irradiance_data.total_irradiance_well_bottom_mw_cm2))
+                            .size(9)
+                            .color(iced::Color::from_rgb(0.8, 0.6, 0.2))
                     );
                 }
                 Err(_) => {

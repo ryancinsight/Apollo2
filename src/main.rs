@@ -54,6 +54,11 @@ fn run_dual_mode() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     let has_cli_args = args.len() > 1;
 
+    // Check for validation test argument
+    if args.len() > 1 && args[1] == "--test-irradiance" {
+        return run_irradiance_validation_test();
+    }
+
     if has_cli_args {
         // CLI arguments provided, use CLI interface
         run_cli_interface()
@@ -70,6 +75,24 @@ fn run_dual_mode() -> Result<()> {
     } else {
         // No CLI arguments and terminal environment, use CLI interface
         run_cli_interface()
+    }
+}
+
+/// Run irradiance validation test
+fn run_irradiance_validation_test() -> Result<()> {
+    use crate::core::calculations::irradiance::IrradianceCalculator;
+
+    println!("Running well-bottom irradiance model validation test...\n");
+    
+    match IrradianceCalculator::run_validation_test() {
+        Ok(report) => {
+            println!("{}", report);
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("Validation test failed: {}", e);
+            Err(e)
+        }
     }
 }
 
