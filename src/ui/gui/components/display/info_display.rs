@@ -254,7 +254,7 @@ impl InfoDisplay {
                         // Calculate irradiance
                         let irradiance_text = match IrradianceCalculator::calculate_irradiance(&power_info) {
                             Ok(irradiance_data) => {
-                                format!("{:.3} mW/cm²", irradiance_data.total_irradiance_mw_cm2)
+                                format!("{:.3} mW/cm²", irradiance_data.surface_irradiance_mw_cm2)
                             }
                             Err(_) => "Error calculating irradiance".to_string(),
                         };

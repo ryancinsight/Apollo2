@@ -11,7 +11,7 @@
 //! - Integration with device power information queries
 //! - mW/cm² irradiance calculations for each stage
 
-use crate::core::{Result, IrradianceCalculator};
+use crate::core::{Result, calculations::IrradianceCalculator};
 use crate::device::LumidoxDevice;
 
 /// Stage options display utilities and functionality

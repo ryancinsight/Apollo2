@@ -84,7 +84,7 @@ fn run_irradiance_validation_test() -> Result<()> {
 
     println!("Running well-bottom irradiance model validation test...\n");
     
-    match IrradianceCalculator::run_validation_test() {
+    match IrradianceCalculator::validate_against_measurement() {
         Ok(report) => {
             println!("{}", report);
             Ok(())

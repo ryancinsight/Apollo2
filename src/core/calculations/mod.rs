@@ -4,7 +4,7 @@
 //! power, irradiance, and geometry calculations.
 //!
 //! Modules:
-//! - `irradiance`: mW/cm² and plate geometry calculations
+//! - `irradiance`: mW/cm² and plate geometry calculations with comprehensive modeling
 
 pub mod irradiance;
 
